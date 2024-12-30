@@ -137,9 +137,14 @@ def check_leave(device_id):
             ['adb', '-s', f'127.0.0.1:{device_id}', 'logcat', '-d', 'com.roblox.client:*'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        
-        # Mengambil hasil output log dan mencoba untuk memeriksa adanya karakter non-UTF-8
+
+        # Periksa apakah stdout kosong atau None
         logs = result.stdout
+        if logs is None:
+            print(f"Tidak ada log yang tersedia untuk device {device_id}")
+            return False
+
+        # Membersihkan log dan mencari teks yang relevan
         logs = logs.encode('latin-1', errors='ignore').decode('latin-1')  # Mengabaikan karakter yang tidak bisa dibaca
         if "Leave" in logs or "Reconnect" in logs:
             return True  # Teks Leave atau Reconnect ditemukan
