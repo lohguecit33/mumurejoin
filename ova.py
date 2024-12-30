@@ -117,7 +117,7 @@ def force_close_roblox(device_id):
     time.sleep(8)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
-def is_roblox_running(device_id):
+def check_roblox_running(device_id):
     try:
         result = subprocess.run(
             ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
