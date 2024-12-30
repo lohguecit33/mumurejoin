@@ -187,10 +187,13 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
 def menu():
     user_id, game_id = load_config()
     ports = load_ports()
+    
 
-    # Otomatis menyambungkan ADB ke semua port yang ada
-    print(colored("Menyambungkan ADB ke semua port yang tersedia...", 'cyan'))
-    auto_connect_adb(ports)
+    if ports:
+        print(colored("Port ADB telah ditemukan. Menyambungkan otomatis...", 'cyan'))
+        auto_connect_adb(ports)
+    else:
+        print(colored("Port ADB tidak ditemukan. Silakan atur terlebih dahulu.", 'yellow'))
     
 if user_id and game_id:
         print(colored(f"User ID: {user_id}, Game ID: {game_id} telah dimuat dari konfigurasi.", 'green'))
