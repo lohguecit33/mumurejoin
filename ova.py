@@ -148,7 +148,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
 
     for port in ports:
         # Cek apakah Roblox sudah berjalan di instance ini
-        if not check_roblox_running(port):
+        if not check_roblox_running(port):  # Jika Roblox belum berjalan
             print(f"Memulai Roblox di emulator {port}...")
             force_close_roblox(port)
             run_roblox(port, status)
@@ -172,7 +172,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
 
         for port in ports:
             if check_leave(port):  
-                print(colored(f"di kick atau disconect{port}, memulai ulang roblox...", 'red'))
+                print(colored(f"Di kick atau disconnect di emulator {port}, memulai ulang roblox...", 'red'))
                 force_close_roblox(port)
                 run_roblox(port, status)  
                 auto_join_blox_fruits(port, game_id, status)
@@ -188,6 +188,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
             start_time = time.time()
 
         time.sleep(5)
+
 
 # Fungsi utama untuk menjalankan aplikasi
 def menu():
