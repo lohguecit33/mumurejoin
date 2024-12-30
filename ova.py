@@ -144,9 +144,12 @@ def check_leave(device_id):
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     logs = result.stdout.decode('utf-8')
 
-    if "LEAVE" in logs:
-        return True
-    return False    
+    if "Leave" in logs or "Reconnect" in logs:
+            return True  # Teks Leave atau Reconnect ditemukan
+        return False  # Tidak ada teks Leave atau Reconnect
+    except subprocess.SubprocessError as e:
+        print(f"eror teks log: {str(e)}")
+        return False
 
 # Fungsi utama untuk memastikan Roblox tetap berjalan dan restart sesuai interval waktu yang ditentukan
 def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
