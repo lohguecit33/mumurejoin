@@ -166,7 +166,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
 
         # Cek apakah interval adalah 0, jika ya, lewati restart, tetapi tetap lanjutkan pemeriksaan
         if interval_minutes == 0:
-            print("Interval adalah 0, tidak ada restart yang dilakukan.")
+            
         
         # Pengecekan status Roblox dan melakukan restart jika perlu
         for port in ports:
