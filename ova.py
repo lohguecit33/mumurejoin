@@ -96,23 +96,25 @@ def press_start_button_multiple_times(device_id):
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(1)
 
-# Fungsi untuk force close Roblox menggunakan PID
+# Fungsi untuk force close Roblox
 def force_close_roblox(device_id):
     try:
-        # Mendapatkan PID dari aplikasi Roblox
+        # Cek apakah Roblox sedang berjalan dengan pidof
         result = subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
         pid = result.stdout.strip()
-        if pid:
-            # Menghentikan aplikasi menggunakan PID
-            subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'kill', pid],
+        
+        if pid:  # Jika Roblox ditemukan (PID ditemukan)
+            # Force stop dengan am force-stop
+            subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print(colored(f"Roblox berhasil dihentikan di emulator {device_id}.", 'green'))
+            print(colored(f"restart roblox {device_id}.", 'green'))
         else:
-            print(colored(f"Roblox tidak ditemukan di emulator {device_id}.", 'yellow'))
+            print(colored(f"membuka ulang {device_id}.", 'yellow'))
+        
     except subprocess.SubprocessError as e:
-        print(colored(f"Terjadi kesalahan saat mencoba menutup Roblox di emulator {device_id}: {str(e)}", 'red'))
+        print(colored(f"error waktu restart {device_id}: {str(e)}", 'red'))
     time.sleep(8)
 
 
