@@ -148,7 +148,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
 
     for port in ports:
         # Cek apakah Roblox sudah berjalan di instance ini
-        if not check_roblox_running(port):  # Jika Roblox belum berjalan
+        if not check_roblox_running(port):
             print(f"Memulai Roblox di emulator {port}...")
             force_close_roblox(port)
             run_roblox(port, status)
