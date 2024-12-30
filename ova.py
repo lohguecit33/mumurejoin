@@ -146,6 +146,11 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
     while True:
         elapsed_time = time.time() - start_time
 
+        # Jika interval adalah 0, lewati bagian interval dan tidak restart Roblox
+        if interval_minutes == 0:
+            print("set 0, tidak ada restart yang dilakukan.")
+            break
+
         for port in ports:
             if not check_roblox_running(port):  
                 print(colored(f"Roblox tidak berjalan di emulator {port}, Memulai ulang roblox...", 'red'))
