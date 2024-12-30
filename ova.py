@@ -177,7 +177,7 @@ def menu():
     ports = load_ports()
 
     if ports:
-        print(colored("Port ADB telah ditemukan. Menyambungkan otomatis...", 'cyan'))
+        
         auto_connect_adb(ports)
     else:
         print(colored("Port ADB tidak ditemukan. Silakan atur terlebih dahulu.", 'yellow'))
