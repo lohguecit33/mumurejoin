@@ -158,8 +158,6 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
             force_close_roblox(port)
             run_roblox(port, status)
             auto_join_blox_fruits(port, game_id, status)
-        else:
-            print(f"Roblox sudah berjalan di emulator {port}, melewati proses ini...")
 
     interval_seconds = interval_minutes * 60
     start_time = time.time()
