@@ -136,13 +136,13 @@ def check_roblox_running(device_id):
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return result.returncode == 0
 
-# Fungsi untuk memeriksa teks "Leave" atau "Reconnect" di log
-def check_leave_or_reconnect(device_id):
+# Fungsi untuk memeriksa teks "Leave" di log
+def check_leave(device_id):
     result = subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'logcat', '-d', 'com.roblox.client:*'], 
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     logs = result.stdout.decode('utf-8')
 
-    if "Leave" in logs or "Reconnect" in logs:
+    if "Leave" in logs:
         return True
     return False    
 
@@ -152,6 +152,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
     update_table(status)
 
     for port in ports:
+        force_close_roblox(port)
         run_roblox(port, status)
         auto_join_blox_fruits(port, game_id, status)
 
@@ -174,7 +175,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
                 auto_join_blox_fruits(port, game_id, status)  
 
         for port in ports:
-            if check_leave_or_reconnect(port):  
+            if check_leave(port):  
                 print(colored(f"di kick atau disconect{port}, memulai ulang roblox...", 'red'))
                 force_close_roblox(port)
                 run_roblox(port, status)  
