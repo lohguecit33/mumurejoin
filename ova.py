@@ -188,11 +188,10 @@ def menu():
     user_id, game_id = load_config()
     ports = load_ports()
     
-
-    if ports:
+if ports:
         print(colored("Port ADB telah ditemukan. Menyambungkan otomatis...", 'cyan'))
         auto_connect_adb(ports)
-    else:
+else:
         print(colored("Port ADB tidak ditemukan. Silakan atur terlebih dahulu.", 'yellow'))
     
 if user_id and game_id:
