@@ -148,8 +148,9 @@ def check_leave(device_id):
 
 # Fungsi untuk memastikan Roblox hanya dijalankan di instance yang belum berjalan
 def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
+    # Membuat status awal untuk semua port/emulator
     status = {port: "Menunggu" for port in ports}
-    update_table(status)
+    update_table(status)  # Perbarui tabel status pertama kali
 
     for port in ports:
         # Cek apakah Roblox sudah berjalan di instance ini
@@ -158,6 +159,10 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
             force_close_roblox(port)
             run_roblox(port, status)
             auto_join_blox_fruits(port, game_id, status)
+        else:
+            # Jika Roblox sudah berjalan, update status emulator
+            status[port] = "Roblox Sudah Berjalan"
+            update_table(status)  # Tabel langsung diperbarui
 
     interval_seconds = interval_minutes * 60
     start_time = time.time()
@@ -171,7 +176,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
                 print(colored(f"Roblox tidak berjalan di emulator {port}, Memulai ulang roblox...", 'red'))
                 force_close_roblox(port)
                 run_roblox(port, status)  
-                auto_join_blox_fruits(port, game_id, status)  
+                auto_join_blox_fruits(port, game_id, status)
 
         for port in ports:
             if check_leave(port):  
