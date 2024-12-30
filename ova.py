@@ -96,11 +96,25 @@ def press_start_button_multiple_times(device_id):
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(1)
 
-# Fungsi untuk force close Roblox
+# Fungsi untuk force close Roblox menggunakan PID
 def force_close_roblox(device_id):
-    subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(15)
+    try:
+        # Mendapatkan PID dari aplikasi Roblox
+        result = subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        pid = result.stdout.strip()
+        if pid:
+            # Menghentikan aplikasi menggunakan PID
+            subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'kill', pid],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print(colored(f"Roblox berhasil dihentikan di emulator {device_id}.", 'green'))
+        else:
+            print(colored(f"Roblox tidak ditemukan di emulator {device_id}.", 'yellow'))
+    except subprocess.SubprocessError as e:
+        print(colored(f"Terjadi kesalahan saat mencoba menutup Roblox di emulator {device_id}: {str(e)}", 'red'))
+    time.sleep(8)
+
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
 def is_roblox_running(device_id):
@@ -156,7 +170,6 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
             if not check_roblox_running(port):  
                 print(colored(f"Roblox tidak berjalan di emulator {port}, Memulai ulang roblox...", 'red'))
                 force_close_roblox(port)
-                force_close_roblox(port)
                 run_roblox(port, status)  
                 auto_join_blox_fruits(port, game_id, status)  
 
@@ -164,15 +177,13 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
             if check_leave_or_reconnect(port):  
                 print(colored(f"di kick atau disconect{port}, memulai ulang roblox...", 'red'))
                 force_close_roblox(port)
-                force_close_roblox(port)
                 run_roblox(port, status)  
                 auto_join_blox_fruits(port, game_id, status)
 
         # Hanya restart jika interval lebih dari 0
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
-                force_close_roblox(port)
-                force_close_roblox(port)
+                force_close_roblox(port) 
                 status[port] = "Restarting Roblox"
                 update_table(status)
                 run_roblox(port, status)
