@@ -147,11 +147,11 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
     while True:
         elapsed_time = time.time() - start_time
 
-        # Jika interval adalah 0, lewati bagian interval dan tidak restart Roblox
+        # Cek apakah interval adalah 0, jika ya, lewati restart, tetapi tetap lanjutkan pemeriksaan
         if interval_minutes == 0:
-            print("set 0, tidak ada restart yang dilakukan.")
-            break
-
+            print("Interval adalah 0, tidak ada restart yang dilakukan.")
+        
+        # Pengecekan status Roblox dan melakukan restart jika perlu
         for port in ports:
             if not check_roblox_running(port):  
                 print(colored(f"Roblox tidak berjalan di emulator {port}, Memulai ulang roblox...", 'red'))
@@ -160,13 +160,14 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
                 auto_join_blox_fruits(port, game_id, status)  
 
         for port in ports:
-            if check_leave_or_reconnect(port):  
+            if check_leave(port):  
                 print(colored(f"di kick atau disconect{port}, memulai ulang roblox...", 'red'))
                 force_close_roblox(port)  
                 run_roblox(port, status)  
                 auto_join_blox_fruits(port, game_id, status)
 
-        if elapsed_time >= interval_seconds:
+        # Hanya restart jika interval lebih dari 0
+        if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
                 force_close_roblox(port)
                 status[port] = "Restarting Roblox"
