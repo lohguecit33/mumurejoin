@@ -47,7 +47,6 @@ def save_ports(ports):
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
     for port in ports:
-        
         subprocess.run(['adb', 'connect', f'127.0.0.1:{port}'])
         time.sleep(2)
 
@@ -117,7 +116,6 @@ def force_close_roblox(device_id):
         print(colored(f"error waktu restart {device_id}: {str(e)}", 'red'))
     time.sleep(8)
 
-
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
 def is_roblox_running(device_id):
     try:
@@ -131,14 +129,6 @@ def is_roblox_running(device_id):
             return False
     except subprocess.SubprocessError:
         return False
-
-# Fungsi untuk memeriksa apakah Roblox masih berjalan
-def check_roblox_running(device_id):
-    result = subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return result.returncode == 0
-
-import subprocess
 
 # Fungsi untuk memeriksa apakah ada teks "Leave" atau "Reconnect" dalam log aplikasi Roblox
 def check_leave(device_id):
@@ -155,7 +145,6 @@ def check_leave(device_id):
     except subprocess.SubprocessError as e:
         print(f"Terjadi kesalahan saat memeriksa log: {str(e)}")
         return False
-
 
 # Fungsi utama untuk memastikan Roblox tetap berjalan dan restart sesuai interval waktu yang ditentukan
 def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
@@ -175,22 +164,20 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
 
         # Cek apakah interval adalah 0, jika ya, lewati restart, tetapi tetap lanjutkan pemeriksaan
         if interval_minutes == 0:
-            
-        
-        # Pengecekan status Roblox dan melakukan restart jika perlu
-        for port in ports:
-            if not check_roblox_running(port):  
-                print(colored(f"Roblox tidak berjalan di emulator {port}, Memulai ulang roblox...", 'red'))
-                force_close_roblox(port)
-                run_roblox(port, status)  
-                auto_join_blox_fruits(port, game_id, status)  
+            # Pengecekan status Roblox dan melakukan restart jika perlu
+            for port in ports:
+                if not check_roblox_running(port):  
+                    print(colored(f"Roblox tidak berjalan di emulator {port}, Memulai ulang roblox...", 'red'))
+                    force_close_roblox(port)
+                    run_roblox(port, status)  
+                    auto_join_blox_fruits(port, game_id, status)  
 
-        for port in ports:
-            if check_leave(port):  
-                print(colored(f"di kick atau disconect{port}, memulai ulang roblox...", 'red'))
-                force_close_roblox(port)
-                run_roblox(port, status)  
-                auto_join_blox_fruits(port, game_id, status)
+            for port in ports:
+                if check_leave(port):  
+                    print(colored(f"di kick atau disconect{port}, memulai ulang roblox...", 'red'))
+                    force_close_roblox(port)
+                    run_roblox(port, status)  
+                    auto_join_blox_fruits(port, game_id, status)
 
         # Hanya restart jika interval lebih dari 0
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
@@ -210,7 +197,6 @@ def menu():
     ports = load_ports()
 
     if ports:
-        
         auto_connect_adb(ports)
     else:
         print(colored("Port ADB tidak ditemukan. Silakan atur terlebih dahulu.", 'yellow'))
