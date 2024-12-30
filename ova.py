@@ -47,7 +47,7 @@ def save_ports(ports):
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
     for port in ports:
-        print(f"Mencoba sambungkan ke port {port}...")
+        
         subprocess.run(['adb', 'connect', f'127.0.0.1:{port}'])
         time.sleep(2)
 
