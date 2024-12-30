@@ -188,7 +188,11 @@ def menu():
     user_id, game_id = load_config()
     ports = load_ports()
 
-    if user_id and game_id:
+    # Otomatis menyambungkan ADB ke semua port yang ada
+    print(colored("Menyambungkan ADB ke semua port yang tersedia...", 'cyan'))
+    auto_connect_adb(ports)
+    
+if user_id and game_id:
         print(colored(f"User ID: {user_id}, Game ID: {game_id} telah dimuat dari konfigurasi.", 'green'))
     else:
         print(colored("User ID dan Game ID belum diset. Silakan set terlebih dahulu.", 'yellow'))
