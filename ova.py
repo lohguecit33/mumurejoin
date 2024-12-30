@@ -138,13 +138,13 @@ def check_roblox_running(device_id):
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return result.returncode == 0
 
-# Fungsi untuk memeriksa teks "Leave" di log
+# Fungsi untuk memeriksa teks "LEAVE" di log
 def check_leave(device_id):
     result = subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'logcat', '-d', 'com.roblox.client:*'], 
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     logs = result.stdout.decode('utf-8')
 
-    if "Leave" in logs:
+    if "LEAVE" in logs:
         return True
     return False    
 
