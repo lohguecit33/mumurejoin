@@ -145,8 +145,8 @@ def check_leave(device_id):
     logs = result.stdout.decode('utf-8')
 
     if "Leave" in logs or "Reconnect" in logs:
-            return True  # Teks Leave atau Reconnect ditemukan
-        return False  # Tidak ada teks Leave atau Reconnect
+            return True 
+        return False 
     except subprocess.SubprocessError as e:
         print(f"eror teks log: {str(e)}")
         return False
