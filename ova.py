@@ -130,15 +130,23 @@ def check_roblox_running(device_id):
     except subprocess.SubprocessError:
         return False
 
-# Fungsi untuk memeriksa teks "Leave" atau "Reconnect" di log
+# Fungsi untuk memeriksa apakah ada teks "Leave" atau "Reconnect" dalam log aplikasi Roblox
 def check_leave(device_id):
-    result = subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'logcat', '-d', 'com.roblox.client:*'], 
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    logs = result.stdout.decode('utf-8')
-
-    if "Leave" in logs or "Reconnect" in logs:
-        return True
-    return False    
+    try:
+        result = subprocess.run(
+            ['adb', '-s', f'127.0.0.1:{device_id}', 'logcat', '-d', 'com.roblox.client:*'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        
+        # Mengambil hasil output log dan mencoba untuk memeriksa adanya karakter non-UTF-8
+        logs = result.stdout
+        logs = logs.encode('latin-1', errors='ignore').decode('latin-1')  # Mengabaikan karakter yang tidak bisa dibaca
+        if "Leave" in logs or "Reconnect" in logs:
+            return True  # Teks Leave atau Reconnect ditemukan
+        return False  # Tidak ada teks Leave atau Reconnect
+    except subprocess.SubprocessError as e:
+        print(f"Terjadi kesalahan saat memeriksa log: {str(e)}")
+        return False  
 
 # Fungsi utama untuk memastikan Roblox tetap berjalan dan restart sesuai interval waktu yang ditentukan
 def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
