@@ -1,6 +1,7 @@
 import subprocess
 import time
 import os
+import threading
 from tabulate import tabulate
 from termcolor import colored
 from colorama import init
@@ -57,63 +58,45 @@ def update_table(status):
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
 
-# Fungsi untuk menjalankan Roblox pada perangkat tertentu dan menyembunyikan output ADB
-def run_roblox(device_id, status):
-    status[device_id] = "Memulai Roblox"
-    update_table(status)
-    subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/.startup.ActivitySplash'],
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(9)
 
 # Fungsi untuk auto join game Blox Fruits dan mengganti nama proses
 def auto_join_blox_fruits(device_id, game_id, status):
     status[device_id] = "Membuka Blox Fruits"
     update_table(status)
-    subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/.ActivityProtocolLaunch',
-                    '-d', f'https://www.roblox.com/games/{game_id}'],
+    blox_fruits_url = f"roblox://placeID={game_id}"
+    subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', blox_fruits_url],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(8)
+    
+    # Status setelah masuk ke dalam game
+    status[device_id] = "In Game Blox Fruits"
+    update_table(status)
+    
+    # Tunggu sampai game benar-benar dimulai
     ensure_game_started(device_id, status)
 
 # Fungsi untuk memastikan game Blox Fruits sudah mulai dan siap dimainkan
 def ensure_game_started(device_id, status):
     status[device_id] = "Menunggu Game Dimulai"
     update_table(status)
-    press_start_button_multiple_times(device_id)
     status[device_id] = "Blox Fruits Dimulai"
     update_table(status)
 
-# Fungsi untuk menekan tombol Start di game Blox Fruits (menggunakan ADB) beberapa kali
-def press_start_button_multiple_times(device_id):
-    x1, y1 = 550, 481
-    x2, y2 = 550, 380
-    for _ in range(5):
-        subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'input', 'tap', str(x1), str(y1)],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(1)
-        subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'input', 'tap', str(x2), str(y2)],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(1)
 
 # Fungsi untuk force close Roblox
 def force_close_roblox(device_id):
     try:
-        # Cek apakah Roblox sedang berjalan dengan pidof
         result = subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
         pid = result.stdout.strip()
-        
-        if pid:  # Jika Roblox ditemukan (PID ditemukan)
-            # Force stop dengan am force-stop
+        if pid:
             subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print(colored(f"restart roblox {device_id}.", 'green'))
+            print(colored(f"Restart Roblox {device_id}.", 'green'))
         else:
-            print(colored(f"membuka ulang {device_id}.", 'yellow'))
-        
+            print(colored(f"Membuka ulang Roblox di {device_id}.", 'yellow'))
     except subprocess.SubprocessError as e:
-        print(colored(f"error waktu restart {device_id}: {str(e)}", 'red'))
+        print(colored(f"Error waktu restart {device_id}: {str(e)}", 'red'))
     time.sleep(8)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
@@ -123,15 +106,12 @@ def check_roblox_running(device_id):
             ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        if result.stdout.strip():
-            return True
-        else:
-            return False
+        return bool(result.stdout.strip())
     except subprocess.SubprocessError:
         return False
 
-# Fungsi untuk memeriksa apakah ada teks "Leave" atau "Reconnect" dalam log aplikasi Roblox
-def check_leave(device_id):
+# Fungsi untuk memonitor teks "Leave" atau "Reconnect" di UI secara real-time
+def monitor_leave(device_id):
     try:
         result = subprocess.run(
             ['adb', '-s', f'127.0.0.1:{device_id}', 'logcat', '-d', 'com.roblox.client:*'],
@@ -148,21 +128,12 @@ def check_leave(device_id):
 
 # Fungsi untuk memastikan Roblox hanya dijalankan di instance yang belum berjalan
 def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
-    # Membuat status awal untuk semua port/emulator
     status = {port: "Menunggu" for port in ports}
-    update_table(status)  # Perbarui tabel status pertama kali
+    update_table(status)
 
+    # Memulai thread untuk memonitor leave/log disconnect
     for port in ports:
-        # Cek apakah Roblox sudah berjalan di instance ini
-        if not check_roblox_running(port):  # Jika Roblox belum berjalan
-            print(f"Memulai Roblox di emulator {port}...")
-            force_close_roblox(port)
-            run_roblox(port, status)
-            auto_join_blox_fruits(port, game_id, status)
-        else:
-            # Jika Roblox sudah berjalan, update status emulator
-            status[port] = "Roblox Sudah Berjalan"
-            update_table(status)  # Tabel langsung diperbarui
+        threading.Thread(target=monitor_leave, args=(port,), daemon=True).start()
 
     interval_seconds = interval_minutes * 60
     start_time = time.time()
@@ -170,28 +141,17 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
     while True:
         elapsed_time = time.time() - start_time
 
-        # Pengecekan status Roblox dan melakukan restart jika perlu
         for port in ports:
-            if not check_roblox_running(port):  
+            if not check_roblox_running(port):
                 print(colored(f"Roblox tidak berjalan di emulator {port}, Memulai ulang roblox...", 'red'))
                 force_close_roblox(port)
-                run_roblox(port, status)  
                 auto_join_blox_fruits(port, game_id, status)
 
-        for port in ports:
-            if check_leave(port):  
-                print(colored(f"Di kick atau disconnect di emulator {port}, memulai ulang roblox...", 'red'))
-                force_close_roblox(port)
-                run_roblox(port, status)  
-                auto_join_blox_fruits(port, game_id, status)
-
-        # Hanya restart jika interval lebih dari 0
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
-                force_close_roblox(port) 
+                force_close_roblox(port)
                 status[port] = "Restarting Roblox"
                 update_table(status)
-                run_roblox(port, status)
                 auto_join_blox_fruits(port, game_id, status)
             start_time = time.time()
 
@@ -199,6 +159,7 @@ def ensure_roblox_running_with_interval(ports, game_id, interval_minutes):
 
 # Fungsi utama untuk menjalankan aplikasi
 def menu():
+    global game_id  # Agar dapat digunakan oleh thread
     user_id, game_id = load_config()
     ports = load_ports()
 
