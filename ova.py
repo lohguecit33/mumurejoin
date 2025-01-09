@@ -66,9 +66,9 @@ def save_private_link(device_id, link):
         links[device_id] = link
         with open(PRIVATE_LINK_FILE, "w") as file:
             json.dump(links, file, indent=4)
-        print(colored(f"Private link untuk emulator {device_id} berhasil disimpan: {link}", "green"))
+        print(colored(f"Private link for emulator {device_id} successfully saved: {link}", "green"))
     except Exception as e:
-        print(colored(f"Error menyimpan private link: {e}", "red"))
+        print(colored(f"Error saving private link: {e}", "red"))
 
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
@@ -97,12 +97,12 @@ def check_internet_connection(device_id):
 
         # Jika ping tidak berhasil, berarti tidak ada koneksi internet
         if "100% packet loss" in ping_result.stdout:
-            print(colored(f"Emulator {device_id} tidak memiliki koneksi internet.", 'red'))
+
             return False
 
         return True
     except subprocess.SubprocessError as e:
-        print(colored(f"Error saat memeriksa koneksi internet di emulator {device_id}: {e}", 'red'))
+        print(colored(f"no connection {device_id}: {e}", 'red'))
         return False
 
 # Fungsi untuk menjalankan Private Server
