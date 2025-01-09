@@ -171,7 +171,7 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_code, status)
             start_time = time.time()
-        time.sleep(1)
+        time.sleep(5)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
 def check_roblox_running(device_id):
