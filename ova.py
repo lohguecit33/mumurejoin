@@ -75,29 +75,24 @@ def auto_connect_adb(ports):
     for port in ports:
         subprocess.run(['adb', 'connect', f'127.0.0.1:{port}'])
         time.sleep(2)
-        
+
 # Fungsi untuk memeriksa koneksi internet dalam game
 def check_internet_connection(device_id):
     try:
-        # Memeriksa apakah "com.roblox.client" masih berjalan
         result = subprocess.run(
             ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'ps'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        
         if "com.roblox.client" not in result.stdout:
             print(colored(f"Roblox client tidak berjalan di emulator {device_id}.", 'red'))
             return False
 
-        # Periksa apakah perangkat bisa terhubung ke internet dengan mengirimkan ping
         ping_result = subprocess.run(
             ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
 
-        # Jika ping tidak berhasil, berarti tidak ada koneksi internet
         if "100% packet loss" in ping_result.stdout:
-
             return False
 
         return True
@@ -127,20 +122,20 @@ def start_default_server(device_id, game_id):
     except Exception as e:
         print(colored(f"Failed to start Default Server: {e}", 'red'))
 
-# Fungsi untuk auto join game, memilih apakah akan menggunakan private code atau default link
+# Fungsi untuk auto join game
 def auto_join_game(device_id, game_id, private_link, status):
     status[device_id] = "Opening the Game"
     update_table(status)
 
     if private_link:
-        start_private_server(device_id, private_link)  # Jalankan private server
+        start_private_server(device_id, private_link)
     else:
-        start_default_server(device_id, game_id)  # Jalankan default server
+        start_default_server(device_id, game_id)
 
     status[device_id] = "In Game"
     update_table(status)
 
-# Fungsi untuk memastikan Roblox berjalan dengan interval waktu tertentu
+# Fungsi untuk memastikan Roblox berjalan
 def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes):
     status = {port: "waiting" for port in ports}
     update_table(status)
@@ -151,27 +146,25 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
     while True:
         elapsed_time = time.time() - start_time
         for port in ports:
-            private_code = private_codes.get(port)
-            
-            # Periksa apakah Roblox sedang berjalan
+            private_link = private_codes.get(port)
+
             if not check_roblox_running(port):
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
                 force_close_roblox(port)
-                auto_join_game(port, game_id, private_code, status)
-            
-            # Periksa apakah ada koneksi internet dalam game
+                auto_join_game(port, game_id, private_link, status)
+
             if not check_internet_connection(port):
                 print(colored(f"Emulator {port} lost internet connection. Force close Roblox.", 'red'))
                 force_close_roblox(port)
-                auto_join_game(port, game_id, private_code, status)
+                auto_join_game(port, game_id, private_link, status)
 
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
-                private_code = private_codes.get(port)
+                private_link = private_codes.get(port)
                 force_close_roblox(port)
-                auto_join_game(port, game_id, private_code, status)
+                auto_join_game(port, game_id, private_link, status)
             start_time = time.time()
-        time.sleep(20)
+        time.sleep(30)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
 def check_roblox_running(device_id):
@@ -184,13 +177,13 @@ def check_roblox_running(device_id):
     except subprocess.SubprocessError:
         return False
 
-# Fungsi untuk force close jika game tidak terhubung atau tidak ada internet
+# Fungsi untuk force close jika game tidak terhubung
 def force_close_roblox(device_id):
     subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(5)  # Tunggu sebentar sebelum memulai kembali
+    time.sleep(5)
 
-# Fungsi untuk menjalankan setiap instance secara paralel
+# Fungsi untuk menjalankan setiap instance
 def start_instance_in_thread(ports, game_id, private_codes, status):
     threads = []
     for port in ports:
@@ -198,7 +191,6 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
         thread.start()
         threads.append(thread)
 
-    # Memeriksa koneksi internet dan menjalankan game
     for port in ports:
         internet_thread = threading.Thread(target=ensure_roblox_running_with_interval, args=([port], game_id, private_codes, 1))
         internet_thread.start()
@@ -207,7 +199,7 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
     for thread in threads:
         thread.join()
 
-# Fungsi untuk memperbarui tabel status emulator
+# Fungsi untuk memperbarui tabel
 def update_table(status):
     os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
