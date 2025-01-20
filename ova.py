@@ -138,7 +138,7 @@ def check_internet_connection(device_id):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         if "com.roblox.client" not in result.stdout:
-            print(colored(f"Roblox client tidak berjalan di emulator {device_id}.", 'red'))
+            print(colored(f"lost connection {device_id}.", 'red'))
             return False
 
         ping_result = subprocess.run(
@@ -244,7 +244,7 @@ def check_roblox_running(device_id):
 def force_close_roblox(device_id):
     subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(10)
+    time.sleep(8)
 
 # Fungsi untuk menjalankan setiap instance
 def start_instance_in_thread(ports, game_id, private_codes, status):
