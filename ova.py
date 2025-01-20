@@ -123,9 +123,8 @@ def save_private_link(device_id, link):
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
     for port in ports:
-        result = subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
         if result.returncode == 0:
-            print(f"Port {port} connected successfully.")
             enable_adb_root_for_all([port])  # Panggil enable_adb_root_for_all langsung setelah port terhubung
         else:
             print(f"Failed to connect to port {port}: {result.stderr}")
@@ -160,7 +159,7 @@ def start_private_server(device_id, private_link):
         subprocess.run(
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.startup.ActivitySplash', '-d', private_link],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(15)
+        time.sleep(20)
         # Membuka game di Roblox setelah ActivitySplash
         subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', private_link],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -176,7 +175,7 @@ def start_default_server(device_id, game_id):
         subprocess.run(
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.startup.ActivitySplash', '-d', game_url],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(15)
+        time.sleep(20)
         # Membuka game di Roblox setelah ActivitySplash
         subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', game_url],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
