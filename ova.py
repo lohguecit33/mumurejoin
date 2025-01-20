@@ -122,6 +122,7 @@ def save_private_link(device_id, link):
 
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
+    connected_ports = []
     global connected_ports  # Menggunakan variabel global
 
     for port in ports:
