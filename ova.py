@@ -34,9 +34,6 @@ def load_config():
                 return user_id, game_id
     return None, None
     
-# Deklarasikan connected_ports secara global di awal
-connected_ports = []
-
 # Fungsi untuk menyimpan User ID dan Game ID ke file
 def save_config(user_id, game_id):
     with open(config_file, 'w') as file:
@@ -125,17 +122,13 @@ def save_private_link(device_id, link):
 
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
-    global connected_ports  # Menggunakan variabel global
-
     for port in ports:
         result = subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
         if result.returncode == 0:
-            print(f"Port {port} connected successfully")
-            connected_ports.append(port)  # Menambahkan port yang berhasil terhubung ke connected_ports
+            print(f"Port {port} connected successfully.")
+            enable_adb_root_for_all([port])  # Panggil enable_adb_root_for_all langsung setelah port terhubung
         else:
-            print(f"Failed to connect to port {port}")
-        time.sleep(2)
+            print(f"Failed to connect to port {port}: {result.stderr}")
 
 # Fungsi untuk memeriksa koneksi internet dalam game
 def check_internet_connection(device_id):
