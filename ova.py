@@ -198,12 +198,6 @@ def auto_join_game(device_id, game_id, private_link, status):
     status[device_id] = "In Game"
     update_table(status)
 
-    # Dapatkan username dan update tabel setelah game dimulai
-    username = get_username_from_prefs(device_id)
-    if username:
-        status[device_id] = f"Playing as {username}"
-    update_table(status)
-
 # Fungsi untuk memastikan Roblox berjalan
 def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes):
     status = {port: "waiting" for port in ports}
