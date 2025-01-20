@@ -91,11 +91,8 @@ def check_internet_connection(device_id):
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        if result.returncode == 0:
-            return True
-        else:
-            return False
-    except Exception as e:
+        return result.returncode == 0
+    except Exception:
         return False
 
 # Fungsi untuk menjalankan Private Server
