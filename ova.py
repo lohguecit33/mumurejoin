@@ -92,13 +92,10 @@ def check_internet_connection(device_id):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         if result.returncode == 0:
-            print(f"Emulator {device_id} terhubung ke internet.")
             return True
         else:
-            print(f"Emulator {device_id} tidak terhubung ke internet.")
             return False
     except Exception as e:
-        print(f"Gagal memeriksa koneksi: {e}")
         return False
 
 # Fungsi untuk menjalankan Private Server
