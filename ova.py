@@ -61,25 +61,37 @@ def enable_adb_root_for_all(ports):
 
 # Fungsi untuk mendapatkan username dari prefs.xml
 def get_username_from_prefs(device_id):
-    # Perintah ADB untuk menarik file prefs.xml dari emulator
-    adb_command = ["adb", "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
+    # Lokasi file prefs.xml di dalam emulator
+    prefs_path = f"/data/data/com.roblox.client/shared_prefs/prefs.xml"
+    
+    # Periksa apakah emulator terhubung dan jalankan adb untuk membuka prefs.xml tanpa ADB
+    adb_command = [
+        ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'cat', prefs_path
+    ]
+    
+    # Membaca isi file prefs.xml tanpa menjalankan perintah ADB untuk mengambil username
+    result = subprocess.run(adb_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-    # Menjalankan perintah ADB
-    xml_content = run_adb_command(adb_command)
-
-    if xml_content:
-        # Mencari username dari tag <string name="username">
-        start_tag = '<string name="username">'
-        end_tag = '</string>'
-
-        start_index = xml_content.find(start_tag)
-        if start_index != -1:
-            start_index += len(start_tag)
-            end_index = xml_content.find(end_tag, start_index)
-            if end_index != -1:
-                username = xml_content[start_index:end_index]
-                return username
-    return None
+    if result.returncode != 0:
+        print(f"Error membaca prefs.xml: {result.stderr}")
+        return None
+    
+    # Cari username di dalam file XML
+    xml_content = result.stdout
+    start_tag = '<string name="username">'
+    end_tag = '</string>'
+    
+    start_index = xml_content.find(start_tag)
+    if start_index == -1:
+        return None
+    
+    end_index = xml_content.find(end_tag, start_index)
+    if end_index == -1:
+        return None
+    
+    # Ambil nilai username dari XML
+    username = xml_content[start_index + len(start_tag):end_index]
+    return username.strip()
     
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
