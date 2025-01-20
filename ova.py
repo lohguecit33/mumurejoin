@@ -33,6 +33,9 @@ def load_config():
                 game_id = lines[1].strip()
                 return user_id, game_id
     return None, None
+    
+# Deklarasikan connected_ports secara global di awal
+connected_ports = []
 
 # Fungsi untuk menyimpan User ID dan Game ID ke file
 def save_config(user_id, game_id):
@@ -122,7 +125,6 @@ def save_private_link(device_id, link):
 
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
-    connected_ports = []
     global connected_ports  # Menggunakan variabel global
 
     for port in ports:
