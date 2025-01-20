@@ -88,24 +88,17 @@ def auto_connect_adb(ports):
 def check_internet_connection(device_id):
     try:
         result = subprocess.run(
-            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ps'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        if "com.roblox.client" not in result.stdout:
-            print(colored(f"Roblox client tidak berjalan di emulator {device_id}.", 'red'))
-            return False
-
-        ping_result = subprocess.run(
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-
-        if "100% packet loss" in ping_result.stdout:
+        if result.returncode == 0:
+            print(Fore.GREEN + f"Emulator {device_id} terhubung ke internet." + Fore.RESET)
+            return True
+        else:
+            print(Fore.RED + f"Emulator {device_id} tidak terhubung ke internet." + Fore.RESET)
             return False
-
-        return True
-    except subprocess.SubprocessError as e:
-        print(colored(f"no connection {device_id}: {e}", 'red'))
+    except Exception as e:
+        print(Fore.RED + f"Gagal memeriksa koneksi: {e}" + Fore.RESET)
         return False
 
 # Fungsi untuk menjalankan Private Server
@@ -196,9 +189,21 @@ def check_roblox_running(device_id):
 
 # Fungsi untuk force close jika game tidak terhubung
 def force_close_roblox(device_id):
-    subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(10)
+    print(Fore.YELLOW + f"Memeriksa koneksi internet di emulator {device_id}..." + Fore.RESET)
+    
+    # Cek koneksi internet setiap detik selama 10 detik
+    for _ in range(10):
+        if check_internet_connection(device_id):
+            return  # Jika terhubung, keluar dari fungsi
+        time.sleep(1)
+
+    # Jika selama 10 detik tidak terhubung, force close aplikasi Roblox
+    print(Fore.RED + f"Tidak ada koneksi internet di emulator {device_id}, force close Roblox..." + Fore.RESET)
+    subprocess.run(
+        [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
+    time.sleep(10)  # Tunggu 10 detik setelah force-close)
 
 # Fungsi untuk menjalankan setiap instance
 def start_instance_in_thread(ports, game_id, private_codes, status):
