@@ -10,6 +10,14 @@ from colorama import init
 # Inisialisasi Colorama untuk pewarnaan teks
 init(autoreset=True)
 
+# Dapatkan jalur ADB saat dijalankan sebagai EXE
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS  # Jalur sementara untuk file EXE
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+ADB_PATH = os.path.join(base_path, 'adb', 'adb.exe')
+
 # Nama file untuk menyimpan User ID, Game ID, Port ADB, dan Private Code
 config_file = "roblox_config.txt"
 port_file = "adb_ports.txt"
@@ -73,14 +81,14 @@ def save_private_link(device_id, link):
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
     for port in ports:
-        subprocess.run(['adb', 'connect', f'127.0.0.1:{port}'])
+        subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'])
         time.sleep(2)
 
 # Fungsi untuk memeriksa koneksi internet dalam game
 def check_internet_connection(device_id):
     try:
         result = subprocess.run(
-            ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'ps'],
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ps'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         if "com.roblox.client" not in result.stdout:
@@ -88,7 +96,7 @@ def check_internet_connection(device_id):
             return False
 
         ping_result = subprocess.run(
-            ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
 
@@ -104,7 +112,7 @@ def check_internet_connection(device_id):
 def start_private_server(device_id, private_link):
     try:
         subprocess.run(
-            ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', private_link],
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', private_link],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(8)
         print(colored(f"Private link dijalankan di emulator {device_id}.", "green"))
@@ -116,7 +124,7 @@ def start_default_server(device_id, game_id):
     try:
         game_url = f"roblox://placeID={game_id}"
         subprocess.run(
-            ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', game_url],
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', game_url],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(8)
     except Exception as e:
@@ -170,7 +178,7 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
 def check_roblox_running(device_id):
     try:
         result = subprocess.run(
-            ['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         return bool(result.stdout.strip())
@@ -179,7 +187,7 @@ def check_roblox_running(device_id):
 
 # Fungsi untuk force close jika game tidak terhubung
 def force_close_roblox(device_id):
-    subprocess.run(['adb', '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
+    subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(10)
 
