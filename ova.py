@@ -61,37 +61,25 @@ def enable_adb_root_for_all(ports):
 
 # Fungsi untuk mendapatkan username dari prefs.xml
 def get_username_from_prefs(device_id):
-    # Lokasi file prefs.xml di dalam emulator
-    prefs_path = f"/data/data/com.roblox.client/shared_prefs/prefs.xml"
-    
-    # Periksa apakah emulator terhubung dan jalankan adb untuk membuka prefs.xml tanpa ADB
-    adb_command = [
-        ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'cat', prefs_path
-    ]
-    
-    # Membaca isi file prefs.xml tanpa menjalankan perintah ADB untuk mengambil username
-    result = subprocess.run(adb_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    # Perintah ADB untuk menarik file prefs.xml dari emulator
+    adb_command = ["adb", "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
 
-    if result.returncode != 0:
-        print(f"Error membaca prefs.xml: {result.stderr}")
-        return None
-    
-    # Cari username di dalam file XML
-    xml_content = result.stdout
-    start_tag = '<string name="username">'
-    end_tag = '</string>'
-    
-    start_index = xml_content.find(start_tag)
-    if start_index == -1:
-        return None
-    
-    end_index = xml_content.find(end_tag, start_index)
-    if end_index == -1:
-        return None
-    
-    # Ambil nilai username dari XML
-    username = xml_content[start_index + len(start_tag):end_index]
-    return username.strip()
+    # Menjalankan perintah ADB
+    xml_content = run_adb_command(adb_command)
+
+    if xml_content:
+        # Mencari username dari tag <string name="username">
+        start_tag = '<string name="username">'
+        end_tag = '</string>'
+
+        start_index = xml_content.find(start_tag)
+        if start_index != -1:
+            start_index += len(start_tag)
+            end_index = xml_content.find(end_tag, start_index)
+            if end_index != -1:
+                username = xml_content[start_index:end_index]
+                return username
+    return None
     
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
@@ -134,18 +122,17 @@ def save_private_link(device_id, link):
 
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
+    global connected_ports  # Menggunakan variabel global
+
     for port in ports:
         result = subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
         if result.returncode == 0:
-            print(f"Port {port} connected successfully.")
-            enable_adb_root_for_all([port])  # Panggil enable_adb_root_for_all langsung setelah port terhubung
+            print(f"Port {port} connected successfully")
+            connected_ports.append(port)  # Menambahkan port yang berhasil terhubung ke connected_ports
         else:
-            print(f"Failed to connect to port {port}: {result.stderr}")
-
-    if connected_ports:
-        enable_adb_root_for_all(connected_ports)  # Panggil enable_adb_root_for_all setelah port terhubung
-    else:
-        print("No ports connected. ADB root not enabled.")
+            print(f"Failed to connect to port {port}")
+        time.sleep(2)
 
 # Fungsi untuk memeriksa koneksi internet dalam game
 def check_internet_connection(device_id):
