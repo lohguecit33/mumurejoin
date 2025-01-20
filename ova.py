@@ -114,11 +114,11 @@ def start_private_server(device_id, private_link):
         subprocess.run(
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.startup.ActivitySplash', '-d', private_link],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(8)
+        time.sleep(15)
         # Membuka game di Roblox setelah ActivitySplash
         subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', private_link],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(8)                               
+        time.sleep(10)                               
         print(colored(f"Private link dijalankan di emulator {device_id}.", "green"))
     except Exception as e:
         print(colored(f"Gagal menjalankan Private Server di emulator {device_id}: {e}", "red"))
@@ -130,10 +130,11 @@ def start_default_server(device_id, game_id):
         subprocess.run(
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.startup.ActivitySplash', '-d', game_url],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(8)
+        time.sleep(15)
         # Membuka game di Roblox setelah ActivitySplash
         subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', game_url],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(10)
         print(Fore.GREEN + f"Membuka game menggunakan server: {game_url}.")       
     except Exception as e:
         print(colored(f"Failed to start Default Server: {e}", 'red'))
