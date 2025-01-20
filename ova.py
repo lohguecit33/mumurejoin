@@ -40,6 +40,47 @@ def save_config(user_id, game_id):
         file.write(f"{user_id}\n{game_id}\n")
     print(colored(f"User ID dan Game ID telah disimpan di {config_file}", 'green'))
 
+# Fungsi untuk menjalankan perintah ADB dan mendapatkan output
+def run_adb_command(command):
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        print(f"Error: {result.stderr}")
+        return None
+    return result.stdout
+
+# Fungsi untuk memastikan ADB root telah diaktifkan untuk semua device
+def enable_adb_root_for_all(ports):
+    for port in ports:
+        print(f"Enabling adb root on emulator {port}...")
+        adb_command = ["adb", "-s", f"127.0.0.1:{port}", "root"]
+        result = subprocess.run(adb_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode != 0:
+            print(f"Error enabling adb root for emulator {port}: {result.stderr}")
+        else:
+            print(f"ADB root enabled for emulator {port}.")
+
+# Fungsi untuk mendapatkan username dari prefs.xml
+def get_username_from_prefs(device_id):
+    # Perintah ADB untuk menarik file prefs.xml dari emulator
+    adb_command = ["adb", "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
+
+    # Menjalankan perintah ADB
+    xml_content = run_adb_command(adb_command)
+
+    if xml_content:
+        # Mencari username dari tag <string name="username">
+        start_tag = '<string name="username">'
+        end_tag = '</string>'
+
+        start_index = xml_content.find(start_tag)
+        if start_index != -1:
+            start_index += len(start_tag)
+            end_index = xml_content.find(end_tag, start_index)
+            if end_index != -1:
+                username = xml_content[start_index:end_index]
+                return username
+    return None
+    
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
     if os.path.exists(port_file):
@@ -50,6 +91,7 @@ def load_ports():
 
 # Fungsi untuk menyimpan Port ADB ke file
 def save_ports(ports):
+    # Menyimpan port-port ADB
     with open(port_file, 'w') as file:
         for port in ports:
             file.write(f"{port}\n")
@@ -81,18 +123,40 @@ def save_private_link(device_id, link):
 # Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
     for port in ports:
-        subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'])
-        time.sleep(2)
+        result = subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0:
+            print(f"Port {port} connected successfully.")
+            enable_adb_root_for_all([port])  # Panggil enable_adb_root_for_all langsung setelah port terhubung
+        else:
+            print(f"Failed to connect to port {port}: {result.stderr}")
+
+    if connected_ports:
+        enable_adb_root_for_all(connected_ports)  # Panggil enable_adb_root_for_all setelah port terhubung
+    else:
+        print("No ports connected. ADB root not enabled.")
 
 # Fungsi untuk memeriksa koneksi internet dalam game
 def check_internet_connection(device_id):
     try:
         result = subprocess.run(
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ps'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        if "com.roblox.client" not in result.stdout:
+            print(colored(f"Roblox client tidak berjalan di emulator {device_id}.", 'red'))
+            return False
+
+        ping_result = subprocess.run(
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        return result.returncode == 0
-    except Exception:
+
+        if "100% packet loss" in ping_result.stdout:
+            return False
+
+        return True
+    except subprocess.SubprocessError as e:
+        print(colored(f"no connection {device_id}: {e}", 'red'))
         return False
 
 # Fungsi untuk menjalankan Private Server
@@ -139,6 +203,12 @@ def auto_join_game(device_id, game_id, private_link, status):
     status[device_id] = "In Game"
     update_table(status)
 
+    # Dapatkan username dan update tabel setelah game dimulai
+    username = get_username_from_prefs(device_id)
+    if username:
+        status[device_id] = f"Playing as {username}"
+    update_table(status)
+
 # Fungsi untuk memastikan Roblox berjalan
 def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes):
     status = {port: "waiting" for port in ports}
@@ -183,19 +253,9 @@ def check_roblox_running(device_id):
 
 # Fungsi untuk force close jika game tidak terhubung
 def force_close_roblox(device_id):
-    # Cek koneksi internet setiap detik selama 10 detik
-    for _ in range(10):
-        if check_internet_connection(device_id):
-            return  # Jika terhubung, keluar dari fungsi
-        time.sleep(1)
-
-    # Jika selama 10 detik tidak terhubung, force close aplikasi Roblox
-    print(f"Tidak ada koneksi internet di emulator {device_id}, force close Roblox...")
-    subprocess.run(
-        [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
-    time.sleep(10)  # Tunggu 10 detik setelah force-close
+    subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(10)
 
 # Fungsi untuk menjalankan setiap instance
 def start_instance_in_thread(ports, game_id, private_codes, status):
@@ -218,13 +278,15 @@ def update_table(status):
     os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
     for device_id, game_status in status.items():
+        username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
         if game_status == "In Game":
             color = 'green'
         elif game_status == "Opening the Game":
             color = 'yellow'
         else:
             color = 'red'
-        rows.append({"NAME": f"emulator:{device_id}", "Proses": colored(game_status, color)})
+        # Menambahkan username di setiap baris tabel
+        rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
