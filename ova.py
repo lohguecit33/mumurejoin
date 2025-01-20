@@ -52,12 +52,10 @@ def run_adb_command(command):
 def enable_adb_root_for_all(ports):
     for port in ports:
         adb_command = ["adb", "-s", f"127.0.0.1:{port}", "root"]
-        result = subprocess.run(adb_command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(adb_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if result.returncode != 0:
             print(f"Error enabling adb root for emulator {port}: {result.stderr}")
-        else:
-            # Jika perlu, kamu bisa menambahkan pesan sukses hanya jika ada error atau pengingatan
-            pass
+        # Tidak ada output yang dicetak jika perintah sukses
 
 # Fungsi untuk mendapatkan username dari prefs.xml
 def get_username_from_prefs(device_id):
