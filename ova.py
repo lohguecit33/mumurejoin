@@ -126,9 +126,9 @@ def check_user_status_by_device(device_id, status):
     if username:
         roblox_user_id = get_roblox_user_id_from_username(username)
         if roblox_user_id:
-            status = check_roblox_user_online_status(roblox_user_id)
+            online_status = check_roblox_user_online_status(roblox_user_id)
             # Update status ke dalam tabel
-            status[device_id] = (username, roblox_user_id, status)
+            status[device_id] = (username, roblox_user_id, online_status)
     else:
         print(colored(f"Gagal mendapatkan username dari emulator {device_id}.", 'red'))
 
