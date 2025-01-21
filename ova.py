@@ -3,7 +3,6 @@ import time
 import os
 import threading
 import json
-import requests
 from tabulate import tabulate
 from termcolor import colored
 from colorama import init
@@ -78,49 +77,7 @@ def get_username_from_prefs(device_id):
                 username = xml_content[start_index:end_index]
                 return username
     return None
-
-# Fungsi untuk mendapatkan Roblox User ID dari API
-def get_roblox_user_id_from_username(username):
-    url = f"https://users.roblox.com/v1/users/search?keyword={username}"
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            if data["data"]:
-                roblox_user_id = data["data"][0]["id"]
-                return roblox_user_id
-    except Exception as e:
-        print(colored(f"Error saat mencoba mendapatkan Roblox User ID: {e}", 'red'))
-    return None
-
-# Fungsi untuk mengecek status online/offline Roblox User
-def check_roblox_user_online_status(roblox_user_id):
-    url = "https://presence.roblox.com/v1/presence/users"
-    payload = {"userIds": [roblox_user_id]}
-    headers = {"Content-Type": "application/json"}
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            user_presence = data["userPresences"][0]
-            online_status = user_presence["userPresenceType"]
-            return online_status  # 2: In Game, 1: Online, 0: Offline
-    except Exception as e:
-        print(colored(f"Error saat mengecek status online: {e}", 'red'))
-    return None
-
-# Fungsi untuk memeriksa status Roblox User berdasarkan emulator dan memperbarui tabel
-def check_user_status_by_device(device_id, status):
-    username = get_username_from_prefs(device_id)
-    if username:
-        roblox_user_id = get_roblox_user_id_from_username(username)
-        if roblox_user_id:
-            status = check_roblox_user_online_status(roblox_user_id)
-            # Update status ke dalam tabel
-            status[device_id] = (username, roblox_user_id, status)
-    else:
-        print(colored(f"Gagal mendapatkan username dari emulator {device_id}.", 'red'))
-
+    
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
     if os.path.exists(port_file):
@@ -307,22 +264,14 @@ def update_table(status):
     rows = []
     for device_id, game_status in status.items():
         username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
-        online_status = check_roblox_user_online_status(roblox_user_id)  # Cek status online
-
         if game_status == "In Game":
             color = 'green'
         elif game_status == "Opening the Game":
             color = 'yellow'
         else:
             color = 'red'
-        
-        # Menambahkan username, status online, dan proses di setiap baris tabel
-        rows.append({
-            "NAME": f"emulator:{device_id}",
-            "Username": username or "Not Found",
-            "Online Status": online_status,
-            "Proses": colored(game_status, color)
-        })
+        # Menambahkan username di setiap baris tabel
+        rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
