@@ -165,7 +165,16 @@ def check_online_status_by_user_id(user_id):
     except Exception as e:
         print(colored(f"Error saat mengecek status online: {e}", "red"))
         return "Error"
-    
+        
+ # Fungsi utama untuk mengecek status online berdasarkan username
+def check_online_status_by_username(username):
+    user_id = get_roblox_user_id_from_username(username)
+    if user_id:
+        status = check_online_status_by_user_id(user_id)
+        print(f"Status online {username}: {status}")
+    else:
+        print(f"Gagal mendapatkan User ID untuk {username}")   
+        
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
     if os.path.exists(port_file):
