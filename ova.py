@@ -138,7 +138,7 @@ def check_internet_connection(device_id):
             return False
 
         ping_result = subprocess.run(
-            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '1.1.1.1'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
 
