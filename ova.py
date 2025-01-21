@@ -138,27 +138,33 @@ def get_username_from_prefs(device_id):
                 return username
     return None
 
-def check_roblox_user_online_status(roblox_user_id):
-    url = "https://presence.roblox.com/v1/presence/users"
-    payload = {"userIds": [roblox_user_id]}
+# Fungsi untuk mengecek status online menggunakan User ID
+def check_online_status_by_user_id(user_id):
+    url = f"https://presence.roblox.com/v1/presence/users"
+    payload = {"userIds": [user_id]}
     headers = {"Content-Type": "application/json"}
+
     try:
         response = requests.post(url, json=payload, headers=headers)
         if response.status_code == 200:
             data = response.json()
-            user_presence = data["userPresences"][0]
-            online_status = user_presence["userPresenceType"]
-            if online_status == 2:
-                return 'Online in game'
-            elif online_status == 1:
-                return 'Online (website/app)'
+            if "userPresences" in data and data["userPresences"]:
+                user_presence = data["userPresences"][0]
+                online_status = user_presence.get("userPresenceType", 0)
+                if online_status == 2:
+                    return "Online in game"
+                elif online_status == 1:
+                    return "Online (website/app)"
+                else:
+                    return "Offline"
             else:
-                return 'Offline'
+                return "Unknown"
         else:
-            print(colored(f"Gagal mengambil status online. Status Code: {response.status_code}", 'red'))
+            print(colored(f"Gagal mengecek status online. Status Code: {response.status_code}", "red"))
+            return "Error"
     except Exception as e:
-        print(colored(f"Error saat mengecek status online: {e}", 'red'))
-    return 'Error'
+        print(colored(f"Error saat mengecek status online: {e}", "red"))
+        return "Error"
     
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
