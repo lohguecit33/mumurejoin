@@ -3,7 +3,6 @@ import time
 import os
 import threading
 import json
-import requests
 from tabulate import tabulate
 from termcolor import colored
 from colorama import init
@@ -78,60 +77,7 @@ def get_username_from_prefs(device_id):
                 username = xml_content[start_index:end_index]
                 return username
     return None
-
-# Fungsi untuk mendapatkan Roblox User ID dari API
-def get_roblox_user_id_from_username(username):
-    url = f"https://users.roblox.com/v1/users/search?keyword={username}"
-    try:
-        response = requests.get(url)
-        
-        # Jika status code 429 (Too Many Requests), tunggu 10 detik dan coba lagi
-        if response.status_code == 429:
-            print(colored("Terlalu banyak permintaan, mencoba lagi dalam 10 detik...", 'yellow'))
-            time.sleep(10)  # Tunggu selama 10 detik
-            return get_roblox_user_id_from_username(username)  # Coba lagi
-        
-        if response.status_code == 200:
-            data = response.json()
-            if "data" in data and data["data"]:
-                roblox_user_id = data["data"][0]["id"]
-                return roblox_user_id
-            else:
-                print(colored(f"Tidak ada data yang ditemukan untuk username {username}", 'yellow'))
-        else:
-            print(colored(f"Error: Status Code {response.status_code}", 'red'))
-    except Exception as e:
-        print(colored(f"Error saat mencoba mendapatkan Roblox User ID: {e}", 'red'))
-    return None
-
-# Fungsi untuk mengecek status online/offline Roblox User
-def check_roblox_user_online_status(roblox_user_id):
-    url = "https://presence.roblox.com/v1/presence/users"
-    payload = {"userIds": [roblox_user_id]}
-    headers = {"Content-Type": "application/json"}
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            user_presence = data["userPresences"][0]
-            online_status = user_presence["userPresenceType"]
-            return online_status  # 2: In Game, 1: Online, 0: Offline
-    except Exception as e:
-        print(colored(f"Error saat mengecek status online: {e}", 'red'))
-    return None
-
-# Fungsi untuk memeriksa status Roblox User berdasarkan emulator dan memperbarui tabel
-def check_user_status_by_device(device_id, status):
-    username = get_username_from_prefs(device_id)
-    if username:
-        roblox_user_id = get_roblox_user_id_from_username(username)
-        if roblox_user_id:
-            online_status = check_roblox_user_online_status(roblox_user_id)
-            # Update status ke dalam tabel
-            status[device_id] = (username, roblox_user_id, online_status)
-    else:
-        print(colored(f"Gagal mendapatkan username dari emulator {device_id}.", 'red'))
-
+    
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
     if os.path.exists(port_file):
@@ -179,6 +125,30 @@ def auto_connect_adb(ports):
             enable_adb_root_for_all([port])  # Panggil enable_adb_root_for_all langsung setelah port terhubung
         else:
             print(f"Failed to connect to port {port}: {result.stderr}")
+
+# Fungsi untuk memeriksa koneksi internet dalam game
+def check_internet_connection(device_id):
+    try:
+        result = subprocess.run(
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ps'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        if "com.roblox.client" not in result.stdout:
+            print(colored(f"lost connection {device_id}.", 'red'))
+            return False
+
+        ping_result = subprocess.run(
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '1.1.1.1'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+
+        if "100% packet loss" in ping_result.stdout:
+            return False
+
+        return True
+    except subprocess.SubprocessError as e:
+        print(colored(f"no connection {device_id}: {e}", 'red'))
+        return False
 
 # Fungsi untuk menjalankan Private Server
 def start_private_server(device_id, private_link):
@@ -237,31 +207,22 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
         for port in ports:
             private_link = private_codes.get(port)
 
-            # Periksa apakah Roblox sedang berjalan pada port ini
             if not check_roblox_running(port):
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
 
-            # Cek status online/offline dari Roblox user
-            username = get_username_from_prefs(port)
-            if username:
-                roblox_user_id = get_roblox_user_id_from_username(username)
-                if roblox_user_id:
-                    online_status = check_roblox_user_online_status(roblox_user_id)
+            if not check_internet_connection(port):
+                print(colored(f"Emulator {port} lost internet connection. Force close Roblox.", 'red'))
+                force_close_roblox(port)
+                auto_join_game(port, game_id, private_link, status)
 
-                    if online_status == 0:  # Jika statusnya offline
-                        print(colored(f"Roblox user {username} is offline. Rejoining...", 'yellow'))
-                        auto_join_game(port, game_id, private_link, status)
-
-        # Interval untuk pengecekan lebih lanjut
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
                 private_link = private_codes.get(port)
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
             start_time = time.time()
-
         time.sleep(10)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
@@ -299,26 +260,20 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
 
 # Fungsi untuk memperbarui tabel
 def update_table(status):
-    table = []
-    for device_id, data in status.items():
-        if len(data) == 3:  # Pastikan data adalah tuple dengan 3 elemen
-            username, roblox_user_id, online_status = data
-            if online_status == 0:
-                status_str = colored("Offline", 'red')
-            elif online_status == 1:
-                status_str = colored("Online", 'green')
-            elif online_status == 2:
-                status_str = colored("In Game", 'green')
-            else:
-                status_str = 'Unknown'
-            table.append([device_id, username, roblox_user_id, status_str])
+    os.system('cls' if os.name == 'nt' else 'clear')
+    rows = []
+    for device_id, game_status in status.items():
+        username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
+        if game_status == "In Game":
+            color = 'green'
+        elif game_status == "Opening the Game":
+            color = 'yellow'
         else:
-            print(colored(f"Error: Data tidak valid di emulator {device_id}.", 'red'))
-
-    if table:
-        print(tabulate(table, headers=['Emulator ID', 'Username', 'Roblox User ID', 'Status'], tablefmt='fancy_grid'))
-    else:
-        print(colored("Tabel kosong. Pastikan emulator berjalan dengan baik dan username terdeteksi.", 'yellow'))
+            color = 'red'
+        # Menambahkan username di setiap baris tabel
+        rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
+    
+    print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
 
 # Menu utama
