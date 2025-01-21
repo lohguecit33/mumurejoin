@@ -3,6 +3,7 @@ import time
 import os
 import threading
 import json
+import requests
 from tabulate import tabulate
 from termcolor import colored
 from colorama import init
@@ -77,7 +78,49 @@ def get_username_from_prefs(device_id):
                 username = xml_content[start_index:end_index]
                 return username
     return None
-    
+
+# Fungsi untuk mendapatkan Roblox User ID dari API
+def get_roblox_user_id_from_username(username):
+    url = f"https://users.roblox.com/v1/users/search?keyword={username}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            if data["data"]:
+                roblox_user_id = data["data"][0]["id"]
+                return roblox_user_id
+    except Exception as e:
+        print(colored(f"Error saat mencoba mendapatkan Roblox User ID: {e}", 'red'))
+    return None
+
+# Fungsi untuk mengecek status online/offline Roblox User
+def check_roblox_user_online_status(roblox_user_id):
+    url = "https://presence.roblox.com/v1/presence/users"
+    payload = {"userIds": [roblox_user_id]}
+    headers = {"Content-Type": "application/json"}
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            user_presence = data["userPresences"][0]
+            online_status = user_presence["userPresenceType"]
+            return online_status  # 2: In Game, 1: Online, 0: Offline
+    except Exception as e:
+        print(colored(f"Error saat mengecek status online: {e}", 'red'))
+    return None
+
+# Fungsi untuk memeriksa status Roblox User berdasarkan emulator dan memperbarui tabel
+def check_user_status_by_device(device_id, status):
+    username = get_username_from_prefs(device_id)
+    if username:
+        roblox_user_id = get_roblox_user_id_from_username(username)
+        if roblox_user_id:
+            status = check_roblox_user_online_status(roblox_user_id)
+            # Update status ke dalam tabel
+            status[device_id] = (username, roblox_user_id, status)
+    else:
+        print(colored(f"Gagal mendapatkan username dari emulator {device_id}.", 'red'))
+
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
     if os.path.exists(port_file):
@@ -138,7 +181,7 @@ def check_internet_connection(device_id):
             return False
 
         ping_result = subprocess.run(
-            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '1.1.1.1'],
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
 
@@ -207,22 +250,31 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
         for port in ports:
             private_link = private_codes.get(port)
 
+            # Periksa apakah Roblox sedang berjalan pada port ini
             if not check_roblox_running(port):
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
 
-            if not check_internet_connection(port):
-                print(colored(f"Emulator {port} lost internet connection. Force close Roblox.", 'red'))
-                force_close_roblox(port)
-                auto_join_game(port, game_id, private_link, status)
+            # Cek status online/offline dari Roblox user
+            username = get_username_from_prefs(port)
+            if username:
+                roblox_user_id = get_roblox_user_id_from_username(username)
+                if roblox_user_id:
+                    online_status = check_roblox_user_online_status(roblox_user_id)
 
+                    if online_status == 0:  # Jika statusnya offline
+                        print(colored(f"Roblox user {username} is offline. Rejoining...", 'yellow'))
+                        auto_join_game(port, game_id, private_link, status)
+
+        # Interval untuk pengecekan lebih lanjut
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
                 private_link = private_codes.get(port)
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
             start_time = time.time()
+
         time.sleep(10)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
@@ -264,18 +316,41 @@ def update_table(status):
     rows = []
     for device_id, game_status in status.items():
         username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
+        roblox_user_id = None
+        online_status = None
+        if username:
+            roblox_user_id = get_roblox_user_id_from_username(username)
+            if roblox_user_id:
+                online_status = check_roblox_user_online_status(roblox_user_id)
+
+        # Tentukan warna berdasarkan status game
         if game_status == "In Game":
             color = 'green'
         elif game_status == "Opening the Game":
             color = 'yellow'
         else:
             color = 'red'
-        # Menambahkan username di setiap baris tabel
-        rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
+
+        # Tentukan status online dengan warna
+        if online_status == 1:  # Online
+            online_status_color = 'green'
+            online_status_text = "Online"
+        elif online_status == 0:  # Offline
+            online_status_color = 'red'
+            online_status_text = "Offline"
+        else:
+            online_status_color = 'yellow'  # Jika statusnya tidak ditemukan
+            online_status_text = "Unknown"
+
+        # Menambahkan username, status online, dan proses di setiap baris tabel
+        rows.append({
+            "NAME": f"emulator:{device_id}",
+            "Username": username or "Not Found",
+            "Proses": colored(f"{game_status} - {online_status_text}", color=online_status_color),
+        })
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
-
 # Menu utama
 def menu():
     user_id, game_id = load_config()
