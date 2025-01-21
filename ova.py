@@ -315,7 +315,7 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
                     username_to_user_id_cache(username, roblox_user_id)
 
             if roblox_user_id:
-                online_status = check_roblox_user_online_status(roblox_user_id)
+                online_status = check_online_status_by_user_id(user_id)
                 print(colored(f"Status {username}: {online_status}", "blue"))
 
                 if online_status == "Online in game":
@@ -350,7 +350,7 @@ def update_table(status):
     rows = []
     for device_id, roblox_user_id in status.items():
         username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
-        online_status = check_roblox_user_online_status(roblox_user_id) if roblox_user_id else 'Unknown'
+        online_status = check_online_status_by_user_id(user_id) if roblox_user_id else 'Unknown'
 
         # Menentukan warna berdasarkan status online
         if online_status == 'Online in game':
