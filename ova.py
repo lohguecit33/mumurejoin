@@ -158,7 +158,7 @@ def check_roblox_user_online_status(roblox_user_id):
             print(colored(f"Gagal mengambil status online. Status Code: {response.status_code}", 'red'))
     except Exception as e:
         print(colored(f"Error saat mengecek status online: {e}", 'red'))
-    return 'Error
+    return 'Error'
     
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
