@@ -84,9 +84,15 @@ def get_roblox_user_id_from_username(username):
     url = f"https://users.roblox.com/v1/users/search?keyword={username}"
     try:
         response = requests.get(url)
+        
+        # Jika status code 429 (Too Many Requests), tunggu 10 detik dan coba lagi
+        if response.status_code == 429:
+            print(colored("Terlalu banyak permintaan, mencoba lagi dalam 10 detik...", 'yellow'))
+            time.sleep(10)  # Tunggu selama 10 detik
+            return get_roblox_user_id_from_username(username)  # Coba lagi
+        
         if response.status_code == 200:
             data = response.json()
-            # Cek apakah ada data yang ditemukan
             if "data" in data and data["data"]:
                 roblox_user_id = data["data"][0]["id"]
                 return roblox_user_id
@@ -173,30 +179,6 @@ def auto_connect_adb(ports):
             enable_adb_root_for_all([port])  # Panggil enable_adb_root_for_all langsung setelah port terhubung
         else:
             print(f"Failed to connect to port {port}: {result.stderr}")
-
-# Fungsi untuk memeriksa koneksi internet dalam game
-def check_internet_connection(device_id):
-    try:
-        result = subprocess.run(
-            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ps'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        if "com.roblox.client" not in result.stdout:
-            print(colored(f"lost connection {device_id}.", 'red'))
-            return False
-
-        ping_result = subprocess.run(
-            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '8.8.8.8'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-
-        if "100% packet loss" in ping_result.stdout:
-            return False
-
-        return True
-    except subprocess.SubprocessError as e:
-        print(colored(f"no connection {device_id}: {e}", 'red'))
-        return False
 
 # Fungsi untuk menjalankan Private Server
 def start_private_server(device_id, private_link):
@@ -333,9 +315,12 @@ def update_table(status):
         else:
             print(colored(f"Error: Data tidak valid di emulator {device_id}.", 'red'))
 
-    print(tabulate(table, headers=['Emulator ID', 'Username', 'Roblox User ID', 'Status'], tablefmt='fancy_grid'))
+    if table:
+        print(tabulate(table, headers=['Emulator ID', 'Username', 'Roblox User ID', 'Status'], tablefmt='fancy_grid'))
+    else:
+        print(colored("Tabel kosong. Pastikan emulator berjalan dengan baik dan username terdeteksi.", 'yellow'))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
-    
+
 # Menu utama
 def menu():
     user_id, game_id = load_config()
