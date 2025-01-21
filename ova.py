@@ -370,6 +370,7 @@ def menu():
     ports = load_ports()
     private_codes = load_private_links()
     load_cache_from_file()
+    save_cache_to_file()
     
     if ports:
         auto_connect_adb(ports)
