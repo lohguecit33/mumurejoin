@@ -126,6 +126,29 @@ def auto_connect_adb(ports):
         else:
             print(f"Failed to connect to port {port}: {result.stderr}")
 
+# Fungsi untuk memeriksa koneksi internet dalam game
+def check_internet_connection(device_id):
+    try:
+        result = subprocess.run(
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ps'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        if "com.roblox.client" not in result.stdout:
+            print(colored(f"lost connection {device_id}.", 'red'))
+            return False
+
+        ping_result = subprocess.run(
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'ping', '-c', '1', '1.1.1.1'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+
+        if "100% packet loss" in ping_result.stdout:
+            return False
+
+        return True
+    except subprocess.SubprocessError as e:
+        print(colored(f"no connection {device_id}: {e}", 'red'))
+        return False
 
 # Fungsi untuk menjalankan Private Server
 def start_private_server(device_id, private_link):
@@ -186,6 +209,11 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
 
             if not check_roblox_running(port):
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
+                force_close_roblox(port)
+                auto_join_game(port, game_id, private_link, status)
+
+            if not check_internet_connection(port):
+                print(colored(f"Emulator {port} lost internet connection. Force close Roblox.", 'red'))
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
 
