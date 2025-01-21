@@ -22,6 +22,7 @@ ADB_PATH = os.path.join(base_path, 'adb', 'adb.exe')
 config_file = "roblox_config.txt"
 port_file = "adb_ports.txt"
 PRIVATE_LINK_FILE = "private_links.json"
+CACHE_FILE = "roblox_cache.json"
 
 # Fungsi untuk menyimpan dan memuat konfigurasi
 def load_config():
@@ -39,6 +40,63 @@ def save_config(user_id, game_id):
     with open(config_file, 'w') as file:
         file.write(f"{user_id}\n{game_id}\n")
     print(colored(f"User ID dan Game ID telah disimpan di {config_file}", 'green'))
+
+def load_cache_from_file(filepath="username_cache.json"):
+    global username_to_user_id_cache
+    try:
+        with open(filepath, "r") as file:
+            username_to_user_id_cache = json.load(file)
+        print(colored("Cache berhasil dimuat dari file.", 'green'))
+    except FileNotFoundError:
+        print(colored("File cache tidak ditemukan, membuat cache baru.", 'yellow'))
+    except Exception as e:
+        print(colored(f"Error saat memuat cache dari file: {e}", 'red'))
+
+def save_cache_to_file(filepath="username_cache.json"):
+    try:
+        with open(filepath, "w") as file:
+            json.dump(username_to_user_id_cache, file)
+        print(colored("Cache berhasil disimpan ke file.", 'green'))
+    except Exception as e:
+        print(colored(f"Error saat menyimpan cache ke file: {e}", 'red'))
+
+# Cache lokal untuk menyimpan mapping username -> roblox_user_id
+username_to_user_id_cache = {}
+
+# Fungsi untuk mendapatkan Roblox User ID dari API
+def get_roblox_user_id_from_username(username):
+    # Periksa cache terlebih dahulu
+    if username in username_to_user_id_cache:
+        print(colored(f"Username '{username}' ditemukan di cache.", 'green'))
+        return username_to_user_id_cache[username]
+
+    # Jika tidak ditemukan di cache, ambil dari API
+    url = f"https://users.roblox.com/v1/users/search?keyword={username}"
+    try:
+        response = requests.get(url)
+        
+        # Jika status code 429 (Too Many Requests), tunggu 10 detik dan coba lagi
+        if response.status_code == 429:
+            print(colored("Terlalu banyak permintaan, mencoba lagi dalam 10 detik...", 'yellow'))
+            time.sleep(10)  # Tunggu selama 10 detik
+            return get_roblox_user_id_from_username(username)  # Coba lagi
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "data" in data and data["data"]:
+                roblox_user_id = data["data"][0]["id"]
+                
+                # Simpan hasil ke cache
+                username_to_user_id_cache[username] = roblox_user_id
+                
+                return roblox_user_id
+            else:
+                print(colored(f"Tidak ada data yang ditemukan untuk username {username}", 'yellow'))
+        else:
+            print(colored(f"Error: Status Code {response.status_code}", 'red'))
+    except Exception as e:
+        print(colored(f"Error saat mencoba mendapatkan Roblox User ID: {e}", 'red'))
+    return None
 
 # Fungsi untuk menjalankan perintah ADB dan mendapatkan output
 def run_adb_command(command):
@@ -77,6 +135,28 @@ def get_username_from_prefs(device_id):
                 username = xml_content[start_index:end_index]
                 return username
     return None
+
+def check_roblox_user_online_status(roblox_user_id):
+    url = "https://presence.roblox.com/v1/presence/users"
+    payload = {"userIds": [roblox_user_id]}
+    headers = {"Content-Type": "application/json"}
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            user_presence = data["userPresences"][0]
+            online_status = user_presence["userPresenceType"]
+            if online_status == 2:
+                return 'Online in game'
+            elif online_status == 1:
+                return 'Online (website/app)'
+            else:
+                return 'Offline'
+        else:
+            print(colored(f"Gagal mengambil status online. Status Code: {response.status_code}", 'red'))
+    except Exception as e:
+        print(colored(f"Error saat mengecek status online: {e}", 'red'))
+    return 'Error'
     
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
@@ -215,12 +295,39 @@ def force_close_roblox(device_id):
 
 # Fungsi untuk menjalankan setiap instance
 def start_instance_in_thread(ports, game_id, private_codes, status):
+    def process_instance(port):
+        private_link = private_codes.get(port)
+        username = get_username_from_prefs(port)
+        
+        if username:
+            roblox_user_id = username_to_user_id_cache(username)
+            if not roblox_user_id:
+                roblox_user_id = get_roblox_user_id_from_username(username)
+                if roblox_user_id:
+                    username_to_user_id_cache(username, roblox_user_id)
+
+            if roblox_user_id:
+                online_status = check_roblox_user_online_status(roblox_user_id)
+                print(colored(f"Status {username}: {online_status}", "blue"))
+
+                if online_status == "Online in game":
+                    status[port] = "In Game"
+                else:
+                    auto_join_game(port, game_id, private_link, status)
+
     threads = []
+
+    # Buat thread untuk setiap port
     for port in ports:
-        thread = threading.Thread(target=auto_join_game, args=(port, game_id, private_codes.get(port), status))
+        thread = threading.Thread(target=process_instance, args=(port,))
         thread.start()
         threads.append(thread)
 
+    # Pastikan semua thread selesai
+    for thread in threads:
+        thread.join()
+
+    # Tambahkan thread untuk memastikan Roblox terus berjalan
     for port in ports:
         internet_thread = threading.Thread(target=ensure_roblox_running_with_interval, args=([port], game_id, private_codes, 1))
         internet_thread.start()
@@ -233,16 +340,25 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
 def update_table(status):
     os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
-    for device_id, game_status in status.items():
+    for device_id, roblox_user_id in status.items():
         username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
-        if game_status == "In Game":
+        online_status = check_roblox_user_online_status(roblox_user_id) if roblox_user_id else 'Unknown'
+
+        # Menentukan warna berdasarkan status online
+        if online_status == 'Online in game':
             color = 'green'
-        elif game_status == "Opening the Game":
+        elif online_status == 'Online (website/app)':
             color = 'yellow'
-        else:
+        elif online_status == 'Offline':
             color = 'red'
-        # Menambahkan username di setiap baris tabel
-        rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
+        else:
+            color = 'magenta'
+
+        rows.append({
+            "NAME": f"emulator:{device_id}",
+            "Username": username or "Not Found",
+            "Online Status": colored(online_status, color)
+        })
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
@@ -252,7 +368,8 @@ def menu():
     user_id, game_id = load_config()
     ports = load_ports()
     private_codes = load_private_links()
-
+    load_cache_from_file()
+    
     if ports:
         auto_connect_adb(ports)
     else:
