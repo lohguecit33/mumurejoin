@@ -84,11 +84,22 @@ def get_roblox_user_id_from_username(username):
     url = f"https://users.roblox.com/v1/users/search?keyword={username}"
     try:
         response = requests.get(url)
+        
+        # Jika status code 429 (Too Many Requests), tunggu 10 detik dan coba lagi
+        if response.status_code == 429:
+            print(colored("Terlalu banyak permintaan, mencoba lagi dalam 10 detik...", 'yellow'))
+            time.sleep(10)  # Tunggu selama 10 detik
+            return get_roblox_user_id_from_username(username)  # Coba lagi
+        
         if response.status_code == 200:
             data = response.json()
-            if data["data"]:
+            if "data" in data and data["data"]:
                 roblox_user_id = data["data"][0]["id"]
                 return roblox_user_id
+            else:
+                print(colored(f"Tidak ada data yang ditemukan untuk username {username}", 'yellow'))
+        else:
+            print(colored(f"Error: Status Code {response.status_code}", 'red'))
     except Exception as e:
         print(colored(f"Error saat mencoba mendapatkan Roblox User ID: {e}", 'red'))
     return None
@@ -312,45 +323,21 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
 
 # Fungsi untuk memperbarui tabel
 def update_table(status):
-    os.system('cls' if os.name == 'nt' else 'clear')
-    rows = []
-    for device_id, game_status in status.items():
-        username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
-        roblox_user_id = None
-        online_status = None
-        if username:
-            roblox_user_id = get_roblox_user_id_from_username(username)
-            if roblox_user_id:
-                online_status = check_roblox_user_online_status(roblox_user_id)
-
-        # Tentukan warna berdasarkan status game
-        if game_status == "In Game":
-            color = 'green'
-        elif game_status == "Opening the Game":
-            color = 'yellow'
+    table = []
+    for device_id, (username, roblox_user_id, online_status) in status.items():
+        if online_status == 0:
+            status_str = colored("Offline", 'red')
+        elif online_status == 1:
+            status_str = colored("Online", 'green')
+        elif online_status == 2:
+            status_str = colored("In Game", 'green')
         else:
-            color = 'red'
+            status_str = 'Unknown'
+        table.append([device_id, username, roblox_user_id, status_str])
 
-        # Tentukan status online dengan warna
-        if online_status == 1:  # Online
-            online_status_color = 'green'
-            online_status_text = "Online"
-        elif online_status == 0:  # Offline
-            online_status_color = 'red'
-            online_status_text = "Offline"
-        else:
-            online_status_color = 'yellow'  # Jika statusnya tidak ditemukan
-            online_status_text = "Unknown"
-
-        # Menambahkan username, status online, dan proses di setiap baris tabel
-        rows.append({
-            "NAME": f"emulator:{device_id}",
-            "Username": username or "Not Found",
-            "Proses": colored(f"{game_status} - {online_status_text}", color=online_status_color),
-        })
-    
-    print(tabulate(rows, headers="keys", tablefmt="grid"))
+    print(tabulate(table, headers=['Emulator ID', 'Username', 'Roblox User ID', 'Status'], tablefmt='fancy_grid'))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
+    
 # Menu utama
 def menu():
     user_id, game_id = load_config()
