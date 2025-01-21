@@ -324,16 +324,20 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
 # Fungsi untuk memperbarui tabel
 def update_table(status):
     table = []
-    for device_id, (username, roblox_user_id, online_status) in status.items():
-        if online_status == 0:
-            status_str = colored("Offline", 'red')
-        elif online_status == 1:
-            status_str = colored("Online", 'green')
-        elif online_status == 2:
-            status_str = colored("In Game", 'green')
+    for device_id, data in status.items():
+        if len(data) == 3:  # Pastikan data adalah tuple dengan 3 elemen
+            username, roblox_user_id, online_status = data
+            if online_status == 0:
+                status_str = colored("Offline", 'red')
+            elif online_status == 1:
+                status_str = colored("Online", 'green')
+            elif online_status == 2:
+                status_str = colored("In Game", 'green')
+            else:
+                status_str = 'Unknown'
+            table.append([device_id, username, roblox_user_id, status_str])
         else:
-            status_str = 'Unknown'
-        table.append([device_id, username, roblox_user_id, status_str])
+            print(colored(f"Error: Data tidak valid di emulator {device_id}.", 'red'))
 
     print(tabulate(table, headers=['Emulator ID', 'Username', 'Roblox User ID', 'Status'], tablefmt='fancy_grid'))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
