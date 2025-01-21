@@ -3,6 +3,7 @@ import time
 import os
 import threading
 import json
+import requests
 from tabulate import tabulate
 from termcolor import colored
 from colorama import init
