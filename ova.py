@@ -84,15 +84,9 @@ def get_roblox_user_id_from_username(username):
     url = f"https://users.roblox.com/v1/users/search?keyword={username}"
     try:
         response = requests.get(url)
-        
-        # Jika status code 429 (Too Many Requests), tunggu 10 detik dan coba lagi
-        if response.status_code == 429:
-            print(colored("Terlalu banyak permintaan, mencoba lagi dalam 10 detik...", 'yellow'))
-            time.sleep(10)  # Tunggu selama 10 detik
-            return get_roblox_user_id_from_username(username)  # Coba lagi
-        
         if response.status_code == 200:
             data = response.json()
+            # Cek apakah ada data yang ditemukan
             if "data" in data and data["data"]:
                 roblox_user_id = data["data"][0]["id"]
                 return roblox_user_id
