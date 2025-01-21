@@ -25,6 +25,9 @@ port_file = "adb_ports.txt"
 PRIVATE_LINK_FILE = "private_links.json"
 CACHE_FILE = "roblox_cache.json"
 
+# Cache untuk menyimpan mapping username ke user ID
+username_to_user_id_cache = {}
+
 # Fungsi untuk menyimpan dan memuat konfigurasi
 def load_config():
     if os.path.exists(config_file):
@@ -61,8 +64,6 @@ def save_cache_to_file(filepath="username_cache.json"):
     except Exception as e:
         print(colored(f"Error saat menyimpan cache ke file: {e}", 'red'))
 
-# Cache lokal untuk menyimpan mapping username -> roblox_user_id
-username_to_user_id_cache = {}
 
 # Fungsi untuk mendapatkan Roblox User ID dari API
 def get_roblox_user_id_from_username(username):
