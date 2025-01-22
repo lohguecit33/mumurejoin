@@ -65,30 +65,18 @@ username_to_user_id_cache = {}
 
 # Fungsi untuk mendapatkan Roblox User ID dari API
 def get_roblox_user_id_from_username(username):
-    # Periksa cache terlebih dahulu
     if username in username_to_user_id_cache:
         print(colored(f"Username '{username}' ditemukan di cache.", 'green'))
         return username_to_user_id_cache[username]
 
-    # Jika tidak ditemukan di cache, ambil dari API
     url = f"https://users.roblox.com/v1/users/search?keyword={username}"
     try:
         response = requests.get(url)
-        
-        # Jika status code 429 (Too Many Requests), tunggu 10 detik dan coba lagi
-        if response.status_code == 429:
-            print(colored("Terlalu banyak permintaan, mencoba lagi dalam 10 detik...", 'yellow'))
-            time.sleep(10)  # Tunggu selama 10 detik
-            return get_roblox_user_id_from_username(username)  # Coba lagi
-        
         if response.status_code == 200:
             data = response.json()
             if "data" in data and data["data"]:
                 roblox_user_id = data["data"][0]["id"]
-                
-                # Simpan hasil ke cache
                 username_to_user_id_cache[username] = roblox_user_id
-                
                 return roblox_user_id
             else:
                 print(colored(f"Tidak ada data yang ditemukan untuk username {username}", 'yellow'))
@@ -135,7 +123,8 @@ def get_username_from_prefs(device_id):
                 username = xml_content[start_index:end_index]
                 return username
     return None
-
+    
+# Fungsi untuk memeriksa status online pengguna
 def check_roblox_user_online_status(roblox_user_id):
     url = "https://presence.roblox.com/v1/presence/users"
     payload = {"userIds": [roblox_user_id]}
@@ -268,6 +257,16 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
 
+            # Perbarui status online/offline
+            username = get_username_from_prefs(port)
+            if username:
+                roblox_user_id = get_roblox_user_id_from_username(username)
+                if roblox_user_id:
+                    online_status = check_roblox_user_online_status(roblox_user_id)
+                    status[port] = online_status
+
+        update_table(status)  # Perbarui tabel setiap iterasi
+
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
                 private_link = private_codes.get(port)
@@ -296,26 +295,20 @@ def force_close_roblox(device_id):
 # Fungsi untuk menjalankan setiap instance
 def start_instance_in_thread(ports, game_id, private_codes, status):
     def process_instance(port):
-    private_link = private_codes.get(port)
-    username = get_username_from_prefs(port)
+        private_link = private_codes.get(port)
+        username = get_username_from_prefs(port)
 
-    if username:
-        roblox_user_id = username_to_user_id_cache.get(username)
-        if not roblox_user_id:
+        if username:
             roblox_user_id = get_roblox_user_id_from_username(username)
             if roblox_user_id:
-                username_to_user_id_cache[username] = roblox_user_id
+                online_status = check_roblox_user_online_status(roblox_user_id)
+                print(colored(f"Status {username}: {online_status}", "blue"))
 
-        if roblox_user_id:
-            online_status = check_roblox_user_online_status(roblox_user_id)
-            print(colored(f"Status {username}: {online_status}", "blue"))
+                # Perbarui status berdasarkan hasil online status
+                status[port] = online_status
+                update_table(status)
 
-            # Perbarui status berdasarkan hasil online status
-            status[port] = online_status
-            update_table(status)
-
-            if online_status != "Online in game":
-                auto_join_game(port, game_id, private_link, status)
+                if online_status == "Offline":
                     auto_join_game(port, game_id, private_link, status)
 
     threads = []
@@ -327,15 +320,6 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
         threads.append(thread)
 
     # Pastikan semua thread selesai
-    for thread in threads:
-        thread.join()
-
-    # Tambahkan thread untuk memastikan Roblox terus berjalan
-    for port in ports:
-        internet_thread = threading.Thread(target=ensure_roblox_running_with_interval, args=([port], game_id, private_codes, 1))
-        internet_thread.start()
-        threads.append(internet_thread)
-
     for thread in threads:
         thread.join()
 
