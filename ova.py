@@ -182,11 +182,14 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
         elapsed_time = time.time() - start_time
         for port in ports:
             private_link = private_codes.get(port)
-
-            if not check_roblox_running(port):
+            if check_roblox_running(port):
+                status[port] = "In Game"
+            else:
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
+                status[port] = "roblox offline"
+            update_table(status)
 
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
