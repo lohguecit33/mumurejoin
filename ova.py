@@ -228,7 +228,7 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
         threads.append(thread)
 
     for port in ports:
-        internet_thread = threading.Thread(target=ensure_roblox_running_with_interval, args=([port], game_id, private_codes, status 1))
+        internet_thread = threading.Thread(target=ensure_roblox_running_with_interval, args=([port], game_id, private_codes, 1, status))
         internet_thread.start()
         threads.append(internet_thread)
 
