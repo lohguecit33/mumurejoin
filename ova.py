@@ -247,7 +247,7 @@ def update_table(status):
         if game_status == "In Game":
             color = 'green'
         elif game_status == "Opening the Game":
-            color = 'yellow'
+            color = 'blue'
         elif game_status == "Opening Roblox":
             color = 'cyan'              
         elif game_status == "roblox offline":
