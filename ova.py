@@ -340,16 +340,16 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
 def update_table(status):
     os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
-    for device_id, game_status in status.items():
+    for device_id, online_status in status.items():
         username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
-        if game_status == "In Game":
+        if online_status == "Online in game":
             color = 'green'
-        elif game_status == "Opening the Game":
+        elif online_status == "Opening the Game":
             color = 'yellow'
         else:
             color = 'red'
         # Menambahkan username di setiap baris tabel
-        rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
+        rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(online_status, color)})
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
