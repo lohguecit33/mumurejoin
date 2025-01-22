@@ -184,6 +184,7 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
             private_link = private_codes.get(port)
             if check_roblox_running(port):
                 status[port] = "In Game"
+                update_table(status) 
             else:
                 
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
@@ -191,7 +192,8 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
                 update_table(status)              
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
-
+                status[port] = "In Game"
+                update_table(status) 
 
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
@@ -199,7 +201,7 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
             start_time = time.time()
-        time.sleep(10)
+        time.sleep(5)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
 def check_roblox_running(device_id):
