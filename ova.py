@@ -296,23 +296,26 @@ def force_close_roblox(device_id):
 # Fungsi untuk menjalankan setiap instance
 def start_instance_in_thread(ports, game_id, private_codes, status):
     def process_instance(port):
-        private_link = private_codes.get(port)
-        username = get_username_from_prefs(port)
-        
-        if username:
-            roblox_user_id = username_to_user_id_cache(username)
-            if not roblox_user_id:
-                roblox_user_id = get_roblox_user_id_from_username(username)
-                if roblox_user_id:
-                    username_to_user_id_cache(username, roblox_user_id)
+    private_link = private_codes.get(port)
+    username = get_username_from_prefs(port)
 
+    if username:
+        roblox_user_id = username_to_user_id_cache.get(username)
+        if not roblox_user_id:
+            roblox_user_id = get_roblox_user_id_from_username(username)
             if roblox_user_id:
-                online_status = check_roblox_user_online_status(roblox_user_id)
-                print(colored(f"Status {username}: {online_status}", "blue"))
+                username_to_user_id_cache[username] = roblox_user_id
 
-                if online_status == "Online in game":
-                    status[port] = "In Game"
-                else:
+        if roblox_user_id:
+            online_status = check_roblox_user_online_status(roblox_user_id)
+            print(colored(f"Status {username}: {online_status}", "blue"))
+
+            # Perbarui status berdasarkan hasil online status
+            status[port] = online_status
+            update_table(status)
+
+            if online_status != "Online in game":
+                auto_join_game(port, game_id, private_link, status)
                     auto_join_game(port, game_id, private_link, status)
 
     threads = []
@@ -342,13 +345,7 @@ def update_table(status):
     rows = []
     for device_id, online_status in status.items():
         username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
-        if online_status == "Online in game":
-            color = 'green'
-        elif online_status == "Opening the Game":
-            color = 'yellow'
-        else:
-            color = 'red'
-        # Menambahkan username di setiap baris tabel
+        color = 'green' if "Online" in online_status else 'red'
         rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(online_status, color)})
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
