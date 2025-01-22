@@ -169,11 +169,11 @@ def auto_join_game(device_id, game_id, private_link, status):
 
     status[device_id] = "Opening the Game"
     update_table(status)
-    time.sleep(8)
+    time.sleep(15)
 
     status[device_id] = "In Game"
     update_table(status)
-    time.sleep(8)    
+    time.sleep(5)    
 
 # Fungsi untuk memastikan Roblox berjalan
 def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes):
@@ -253,7 +253,7 @@ def update_table(status):
         elif game_status == "roblox offline":
             color = 'red'
         else:
-            color = 'red'
+            color = 'magenta'
         # Menambahkan username di setiap baris tabel
         rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
     
