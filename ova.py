@@ -169,6 +169,11 @@ def auto_join_game(device_id, game_id, private_link, status):
 
     status[device_id] = "Opening the Game"
     update_table(status)
+    time.sleep(8)
+    
+    status[device_id] = "In Game"
+    update_table(status)
+    time.sleep(8)    
 
 # Fungsi untuk memastikan Roblox berjalan
 def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes):
@@ -184,12 +189,10 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
             private_link = private_codes.get(port)
             if check_roblox_running(port):
                 status[port] = "In Game"
-                update_table(status) 
             else:
                 
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
-                status[port] = "roblox offline" 
-                update_table(status)              
+                status[port] = "roblox offline"          
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
                 status[port] = "In Game"
