@@ -191,8 +191,6 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
                 status[port] = "In Game"
                 update_table(status)                 
             else:
-                
-                print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
                 status[port] = "roblox offline" 
                 update_table(status)          
                 force_close_roblox(port)
