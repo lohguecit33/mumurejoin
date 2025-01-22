@@ -172,6 +172,9 @@ def auto_join_game(device_id, game_id, private_link, status):
 
 # Fungsi untuk memastikan Roblox berjalan
 def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes, status):
+    status = {port: "waiting" for port in ports}
+    update_table(status)
+    
     interval_seconds = interval_minutes * 60
     start_time = time.time()
 
