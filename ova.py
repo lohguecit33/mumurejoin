@@ -152,7 +152,7 @@ def start_default_server(device_id, game_id):
         # Membuka game di Roblox setelah ActivitySplash
         subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', game_url],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(8)
+        time.sleep(10)
         print(Fore.GREEN + f"Membuka game menggunakan server: {game_url}.")       
     except Exception as e:
         print(colored(f"Failed to start Default Server: {e}", 'red'))
@@ -169,11 +169,11 @@ def auto_join_game(device_id, game_id, private_link, status):
 
     status[device_id] = "Opening the Game"
     update_table(status)
-    time.sleep(15)
+    time.sleep(10)
 
     status[device_id] = "In Game"
     update_table(status)
-    time.sleep(5)    
+    time.sleep(1)    
 
 # Fungsi untuk memastikan Roblox berjalan
 def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes):
@@ -247,9 +247,9 @@ def update_table(status):
         if game_status == "In Game":
             color = 'green'
         elif game_status == "Opening the Game":
-            color = 'blue'
+            color = 'cyan'
         elif game_status == "Opening Roblox":
-            color = 'cyan'              
+            color = 'yellow'              
         elif game_status == "roblox offline":
             color = 'red'
         else:
