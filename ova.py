@@ -269,9 +269,9 @@ def menu():
         print(colored("ADB port not found. Please set it first..", 'yellow'))
 
     if user_id and game_id:
-        print(colored(f"User ID: {user_id}, Game ID: {game_id} has been loaded from configuration.", 'green'))
+        print(colored(f"User  ID: {user_id}, Game ID: {game_id} has been loaded from configuration.", 'green'))
     else:
-        print(colored("User ID dan Game ID not set yet. Please set it first.", 'yellow'))
+        print(colored("User  ID dan Game ID not set yet. Please set it first.", 'yellow'))
 
     while True:
         print("\nMenu:")
@@ -286,9 +286,10 @@ def menu():
 
         if choice == '1':
             if not user_id or not game_id:
-                print(colored("User ID or Game ID has not been set. Please set it first.", 'red'))
+                print(colored("User  ID or Game ID has not been set. Please set it first.", 'red'))
                 continue
             interval_minutes = int(input("Enter the time interval (in minutes, enter 0 for no interval).: "))
+            status = {port: "waiting" for port in ports}  # Inisialisasi status
             ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes, status)
         elif choice == '2':
             user_id = input("Enter User ID: ")
