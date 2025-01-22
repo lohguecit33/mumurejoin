@@ -171,10 +171,10 @@ def auto_join_game(device_id, game_id, private_link, status):
     update_table(status)
 
 # Fungsi untuk memastikan Roblox berjalan
-def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes, status):
+def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes):
     status = {port: "waiting" for port in ports}
     update_table(status)
-    
+
     interval_seconds = interval_minutes * 60
     start_time = time.time()
 
@@ -183,40 +183,35 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
         for port in ports:
             private_link = private_codes.get(port)
 
-            if not check_roblox_running(port, status):
+            if not check_roblox_running(port):
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
-                force_close_roblox(port, status)
+                force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
 
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
                 private_link = private_codes.get(port)
-                force_close_roblox(port, status)
+                force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
             start_time = time.time()
         time.sleep(10)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
-def check_roblox_running(device_id, status):
+def check_roblox_running(device_id):
     try:
         result = subprocess.run(
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        status[device_id] = "In Game"
-        update_table(status)
-        
+        )  
         return bool(result.stdout.strip())
     except Exception as e:
         print(colored(f"Error checking if Roblox is running on {device_id}: {e}", 'red'))
         return False
 
 # Fungsi untuk force close jika game tidak terhubung
-def force_close_roblox(device_id, status):
+def force_close_roblox(device_id):
     subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    status[device_id] = "roblox offline"
-    update_table(status)                   
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)               
     time.sleep(8)
 
 # Fungsi untuk menjalankan setiap instance
@@ -228,7 +223,7 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
         threads.append(thread)
 
     for port in ports:
-        internet_thread = threading.Thread(target=ensure_roblox_running_with_interval, args=([port], game_id, private_codes, 1, status))
+        internet_thread = threading.Thread(target=ensure_roblox_running_with_interval, args=([port], game_id, private_codes, 1))
         internet_thread.start()
         threads.append(internet_thread)
 
@@ -240,7 +235,7 @@ def update_table(status):
     os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
     for device_id, game_status in status.items():
-        username = get_username_from_prefs(device_id)
+        username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
         if game_status == "In Game":
             color = 'green'
         elif game_status == "Opening the Game":
@@ -251,6 +246,7 @@ def update_table(status):
             color = 'red'
         else:
             color = 'red'
+        # Menambahkan username di setiap baris tabel
         rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
@@ -268,9 +264,9 @@ def menu():
         print(colored("ADB port not found. Please set it first..", 'yellow'))
 
     if user_id and game_id:
-        print(colored(f"User  ID: {user_id}, Game ID: {game_id} has been loaded from configuration.", 'green'))
+        print(colored(f"User ID: {user_id}, Game ID: {game_id} has been loaded from configuration.", 'green'))
     else:
-        print(colored("User  ID dan Game ID not set yet. Please set it first.", 'yellow'))
+        print(colored("User ID dan Game ID not set yet. Please set it first.", 'yellow'))
 
     while True:
         print("\nMenu:")
@@ -285,11 +281,10 @@ def menu():
 
         if choice == '1':
             if not user_id or not game_id:
-                print(colored("User  ID or Game ID has not been set. Please set it first.", 'red'))
+                print(colored("User ID or Game ID has not been set. Please set it first.", 'red'))
                 continue
             interval_minutes = int(input("Enter the time interval (in minutes, enter 0 for no interval).: "))
-            status = {port: "waiting" for port in ports}  # Inisialisasi status
-            ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes, status)
+            ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes)
         elif choice == '2':
             user_id = input("Enter User ID: ")
             game_id = input("Enter Game ID: ")
