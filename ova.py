@@ -289,7 +289,7 @@ def menu():
                 print(colored("User ID or Game ID has not been set. Please set it first.", 'red'))
                 continue
             interval_minutes = int(input("Enter the time interval (in minutes, enter 0 for no interval).: "))
-            ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes)
+            ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes, status)
         elif choice == '2':
             user_id = input("Enter User ID: ")
             game_id = input("Enter Game ID: ")
