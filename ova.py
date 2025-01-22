@@ -170,7 +170,7 @@ def auto_join_game(device_id, game_id, private_link, status):
     status[device_id] = "Opening the Game"
     update_table(status)
     time.sleep(8)
-    
+
     status[device_id] = "In Game"
     update_table(status)
     time.sleep(8)    
@@ -192,7 +192,8 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
             else:
                 
                 print(colored(f"Roblox not running on emulator {port}. Restart...", 'red'))
-                status[port] = "roblox offline"          
+                status[port] = "roblox offline" 
+                update_table(status)          
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
                 status[port] = "In Game"
