@@ -77,10 +77,10 @@ def get_username_from_prefs(device_id):
                 # Ambil username
                 username = xml_content[start_index:end_index].strip()
                 return username
-
+        time.sleep(60)
     print("Username tidak ditemukan di prefs.xml.")
     return None
-    
+  
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
     if os.path.exists(port_file):
