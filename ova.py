@@ -306,10 +306,12 @@ def menu():
             code = input("Enter private code for all instances: ").strip()
             for port in ports:
                 save_private_link(port, code)
+                private_codes = load_private_links()
         elif choice == '5':
             instance = input("Enter the instance port: ").strip()
             code = input("Enter the private code for this instance.: ").strip()
             save_private_link(instance, code)
+            private_codes = load_private_links()
         elif choice == '6':
             print("Exit the program...")
             break
