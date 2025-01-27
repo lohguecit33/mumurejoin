@@ -39,15 +39,7 @@ def save_config(user_id, game_id):
     with open(config_file, 'w') as file:
         file.write(f"{user_id}\n{game_id}\n")
     print(colored(f"User ID dan Game ID telah disimpan di {config_file}", 'green'))
-
-# Fungsi untuk menjalankan perintah ADB dan mendapatkan output
-def run_adb_command(command):
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if result.returncode != 0:
-        print(f"Error: {result.stderr}")
-        return None
-    return result.stdout
-
+    
 # Fungsi untuk memastikan ADB root telah diaktifkan untuk semua device
 def enable_adb_root_for_all(ports):
     for port in ports:
@@ -60,9 +52,16 @@ def enable_adb_root_for_all(ports):
 # Fungsi untuk mendapatkan username dari prefs.xml
 def get_username_from_prefs(device_id):
     # Perintah ADB untuk menarik file prefs.xml dari emulator
-    adb_command = [ADB_PATH, "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
+    adb_command = [adb_path, "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
+    
     # Menjalankan perintah ADB
-    xml_content = run_adb_command(adb_command)
+    result = subprocess.run(adb_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    
+    if result.returncode != 0:
+        print(f"Error: {result.stderr}")
+        return None
+
+    xml_content = result.stdout
 
     if xml_content:
         # Mencari username dari tag <string name="username">
