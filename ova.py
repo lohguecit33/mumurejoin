@@ -261,7 +261,7 @@ def update_table(status):
     os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
     for device_id, game_status in status.items():
-         username = username_cache.get(device_id)  # Mendapatkan username dari prefs.xml
+        username = username_cache.get(device_id)  # Mendapatkan username dari prefs.xml
         if game_status == "In Game":
             color = 'green'
         elif game_status == "Opening the Game":
