@@ -56,10 +56,10 @@ def get_username_from_prefs(device_id):
     
     # Menjalankan perintah ADB
     result = subprocess.run(adb_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    
     if result.returncode != 0:
         print(f"Error: {result.stderr}")
         return None
+    return result.stdout
 
     xml_content = result.stdout
 
