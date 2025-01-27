@@ -41,7 +41,7 @@ def save_config(user_id, game_id):
     print(colored(f"User ID dan Game ID telah disimpan di {config_file}", 'green'))
 
 # Fungsi untuk menjalankan perintah ADB dan mendapatkan output
-def run_adb_command(command):
+def run_adb_command(adb_command):
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         print(f"Error: {result.stderr}")
