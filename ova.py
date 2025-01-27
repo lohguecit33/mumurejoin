@@ -59,22 +59,26 @@ def get_username_from_prefs(device_id):
     if result.returncode != 0:
         print(f"Error: {result.stderr}")
         return None
-    return result.stdout
 
+    # Konten XML dari prefs.xml
     xml_content = result.stdout
 
+    # Jika XML berhasil diambil, cari username
     if xml_content:
-        # Mencari username dari tag <string name="username">
         start_tag = '<string name="username">'
         end_tag = '</string>'
 
+        # Cari posisi tag <string name="username"> dan </string>
         start_index = xml_content.find(start_tag)
         if start_index != -1:
-            start_index += len(start_tag)
+            start_index += len(start_tag)  # Pindah ke posisi setelah start_tag
             end_index = xml_content.find(end_tag, start_index)
             if end_index != -1:
-                username = xml_content[start_index:end_index]
+                # Ambil username
+                username = xml_content[start_index:end_index].strip()
                 return username
+
+    print("Username tidak ditemukan di prefs.xml.")
     return None
     
 # Fungsi untuk memuat Port ADB dari file
