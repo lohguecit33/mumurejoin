@@ -29,15 +29,14 @@ def load_config():
         with open(config_file, 'r') as file:
             lines = file.readlines()
             if len(lines) >= 2:
-                user_id = lines[0].strip()
                 game_id = lines[1].strip()
-                return user_id, game_id
+                return game_id
     return None, None
     
 # Fungsi untuk menyimpan User ID dan Game ID ke file
-def save_config(user_id, game_id):
+def save_config(game_id):
     with open(config_file, 'w') as file:
-        file.write(f"{user_id}\n{game_id}\n")
+        file.write(f"{game_id}")
     print(colored(f"User ID dan Game ID telah disimpan di {config_file}", 'green'))
     
 # Fungsi untuk memastikan ADB root telah diaktifkan untuk semua device
@@ -77,7 +76,7 @@ def get_username_from_prefs(device_id):
                 # Ambil username
                 username = xml_content[start_index:end_index].strip()
                 return username
-        time.sleep(60)
+
     print("Username tidak ditemukan di prefs.xml.")
     return None
 
@@ -265,7 +264,7 @@ def update_table(status):
 
 # Menu utama
 def menu():
-    user_id, game_id = load_config()
+    game_id = load_config()
     ports = load_ports()
     private_codes = load_private_links()
 
@@ -274,8 +273,8 @@ def menu():
     else:
         print(colored("ADB port not found. Please set it first..", 'yellow'))
 
-    if user_id and game_id:
-        print(colored(f"User ID: {user_id}, Game ID: {game_id} has been loaded from configuration.", 'green'))
+    if game_id:
+        print(colored(f"Game ID: {game_id} has been loaded from configuration.", 'green'))
     else:
         print(colored("User ID dan Game ID not set yet. Please set it first.", 'yellow'))
 
@@ -291,15 +290,14 @@ def menu():
         choice = input("Select number (1/2/3/4/5/6): ")
 
         if choice == '1':
-            if not user_id or not game_id:
+            if not game_id:
                 print(colored("User ID or Game ID has not been set. Please set it first.", 'red'))
                 continue
             interval_minutes = int(input("Enter the time interval (in minutes, enter 0 for no interval).: "))
             ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes)
         elif choice == '2':
-            user_id = input("Enter User ID: ")
             game_id = input("Enter Game ID: ")
-            save_config(user_id, game_id)
+            save_config(game_id)
         elif choice == '3':
             new_ports = input("Enter the ADB port (separate with commas if more than one).: ").split(',')
             save_ports([port.strip() for port in new_ports])
