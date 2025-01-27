@@ -41,7 +41,7 @@ def save_config(user_id, game_id):
     print(colored(f"User ID dan Game ID telah disimpan di {config_file}", 'green'))
 
 # Fungsi untuk menjalankan perintah ADB dan mendapatkan output
-def adb_command(ADB_PATH):
+def run_adb_command(command):
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         print(f"Error: {result.stderr}")
@@ -62,7 +62,7 @@ def get_username_from_prefs(device_id):
     # Perintah ADB untuk menarik file prefs.xml dari emulator
     adb_command = [ADB_PATH, "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
     # Menjalankan perintah ADB
-    xml_content = adb_command(ADB_PATH)
+    xml_content = run_adb_command(adb_command)
 
     if xml_content:
         # Mencari username dari tag <string name="username">
