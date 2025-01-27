@@ -52,7 +52,7 @@ def enable_adb_root_for_all(ports):
 # Fungsi untuk mendapatkan username dari prefs.xml
 def get_username_from_prefs(device_id):
     # Perintah ADB untuk menarik file prefs.xml dari emulator
-    adb_command = [adb_path, "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
+    adb_command = [ADB_PATH, "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
     
     # Menjalankan perintah ADB
     result = subprocess.run(adb_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
