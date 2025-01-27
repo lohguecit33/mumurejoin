@@ -303,13 +303,13 @@ def menu():
             ports = new_ports
             auto_connect_adb(ports)
         elif choice == '4':
-            code = input("Enter private code for all instances: ").strip()
+            code = input("Enter private code for all instances.(only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
             for port in ports:
                 save_private_link(port, code)
                 private_codes = load_private_links()
         elif choice == '5':
             instance = input("Enter the instance port: ").strip()
-            code = input("Enter the private code for this instance.: ").strip()
+            code = input("Enter the private code for this instance.(only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
             save_private_link(instance, code)
             private_codes = load_private_links()
         elif choice == '6':
