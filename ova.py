@@ -48,8 +48,15 @@ def enable_adb_root_for_all(ports):
             print(f"Error enabling adb root for emulator {port}: {result.stderr}")
         # Tidak ada output yang dicetak jika perintah sukses
 
-# Fungsi untuk mendapatkan username dari prefs.xml
+# Tambahkan dictionary untuk menyimpan username
+username_cache = {}
+
+# Modifikasi fungsi untuk mendapatkan username dari prefs.xml
 def get_username_from_prefs(device_id):
+    # Cek apakah username sudah ada di cache
+    if device_id in username_cache:
+        return username_cache[device_id]
+
     # Perintah ADB untuk menarik file prefs.xml dari emulator
     adb_command = [ADB_PATH, "-s", f'127.0.0.1:{device_id}', "shell", "cat", "/data/data/com.roblox.client/shared_prefs/prefs.xml"]
     
@@ -75,10 +82,19 @@ def get_username_from_prefs(device_id):
             if end_index != -1:
                 # Ambil username
                 username = xml_content[start_index:end_index].strip()
+                # Simpan username ke cache
+                username_cache[device_id] = username
                 return username
-        time.sleep(60)
+
     print("Username tidak ditemukan di prefs.xml.")
     return None
+
+# Fungsi untuk mendapatkan username setiap beberapa menit
+def fetch_usernames_every_minute(ports):
+    while True:
+        for port in ports:
+            get_username_from_prefs(port)  # Ambil username dan simpan di cache
+        time.sleep(60)  # Tunggu selama 1 menit
   
 # Fungsi untuk memuat Port ADB dari file
 def load_ports():
@@ -245,7 +261,7 @@ def update_table(status):
     os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
     for device_id, game_status in status.items():
-        username = get_username_from_prefs(device_id)  # Mendapatkan username dari prefs.xml
+         username = username_cache.get(device_id)  # Mendapatkan username dari prefs.xml
         if game_status == "In Game":
             color = 'green'
         elif game_status == "Opening the Game":
