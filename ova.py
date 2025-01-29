@@ -201,6 +201,8 @@ def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_
         if interval_minutes > 0 and elapsed_time >= interval_seconds:
             for port in ports:
                 private_link = private_codes.get(port)
+                status[port] = "roblox offline" 
+                update_table(status)
                 force_close_roblox(port)
                 auto_join_game(port, game_id, private_link, status)
             start_time = time.time()
