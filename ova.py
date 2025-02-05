@@ -249,24 +249,18 @@ def start_instance_in_thread(ports, game_id, private_codes, status):
 
 # Fungsi untuk memperbarui tabel
 def update_table(status):
-    os.system('cls' if os.name == 'nt' else 'clear')
+os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
     for device_id, game_status in status.items():
         force_update = game_status == "Opening Roblox"
-        username = get_username_from_prefs(device_id, force_update=force_update)  # Mendapatkan username dari prefs.xml
-        if game_status == "In Game":
-            color = 'green'
-        elif game_status == "Opening the Game":
-            color = 'cyan'
-        elif game_status == "Opening Roblox":
-            color = 'yellow'              
-        elif game_status == "roblox offline":
-            color = 'red'
-        else:
-            color = 'magenta'
-        # Menambahkan username di setiap baris tabel
-        rows.append({"NAME": f"emulator:{device_id}", "Username": username or "Not Found", "Proses": colored(game_status, color)})
-    
+        username = get_username_from_prefs(device_id, force_update=force_update) or "Not Found"
+        color = {
+            "In Game": "green",
+            "Opening the Game": "cyan",
+            "Opening Roblox": "yellow",
+            "roblox offline": "red"
+        }.get(game_status, "magenta")
+        rows.append({"NAME": f"emulator:{device_id}", "Username": username, "Proses": colored(game_status, color)})
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
 
