@@ -1,4 +1,4 @@
-import subprocess
+ports = load_ports()import subprocess
 import time
 import os
 import threading
@@ -250,6 +250,7 @@ def update_table(status):
 # Menu utama
 def menu():
     game_id = load_config()
+    ports = load_ports()
     private_codes = load_private_links()
 
 
@@ -282,7 +283,6 @@ def menu():
             new_ports = input("Enter the ADB port (separate with commas if more than one).: ").split(',')
             save_ports([port.strip() for port in new_ports])
             ports = new_ports
-            auto_connect_adb(ports)
         elif choice == '4':
             code = input("Enter private code for all instances.(only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
             for port in ports:
