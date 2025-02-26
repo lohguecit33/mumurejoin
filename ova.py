@@ -126,14 +126,26 @@ def auto_join_game(device_id, game_id, private_link, status):
     status[device_id] = "In Game"
     update_table(status)
 
-# Fungsi untuk memastikan Roblox berjalan
-def ensure_roblox_running(device_id, game_id, private_link, status):
+# Fungsi untuk memastikan Roblox berjalan dengan interval
+def ensure_roblox_running_with_interval(device_id, game_id, private_link, status, interval_minutes):
+    interval_seconds = interval_minutes * 60
+    start_time = time.time()
+
     while True:
+        elapsed_time = time.time() - start_time
         if not check_roblox_running(device_id):
             status[device_id] = "roblox offline"
             update_table(status)
             force_close_roblox(device_id)
             auto_join_game(device_id, game_id, private_link, status)
+        
+        if interval_minutes > 0 and elapsed_time >= interval_seconds:
+            status[device_id] = "Restarting due to interval"
+            update_table(status)
+            force_close_roblox(device_id)
+            auto_join_game(device_id, game_id, private_link, status)
+            start_time = time.time()  # Reset timer setelah restart
+
         time.sleep(5)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
@@ -167,22 +179,24 @@ def update_table(status):
             color = 'yellow'              
         elif game_status == "roblox offline":
             color = 'red'
-        else:
+        elif game_status == "Restarting due to interval":
             color = 'magenta'
+        else:
+            color = 'white'
         rows.append({"NAME": f"emulator:{device_id}", "Proses": colored(game_status, color)})
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
 
-# Fungsi untuk menjalankan semua instance secara parallel
-def run_all_instances(ports, game_id, private_codes):
+# Fungsi untuk menjalankan semua instance secara parallel dengan interval
+def run_all_instances_with_interval(ports, game_id, private_codes, interval_minutes):
     status = {port: "waiting" for port in ports}
     update_table(status)
 
     threads = []
     for port in ports:
         private_link = private_codes.get(port)
-        thread = threading.Thread(target=ensure_roblox_running, args=(port, game_id, private_link, status))
+        thread = threading.Thread(target=ensure_roblox_running_with_interval, args=(port, game_id, private_link, status, interval_minutes))
         thread.start()
         threads.append(thread)
 
@@ -220,23 +234,24 @@ def menu():
             if not game_id:
                 print(colored("Game ID has not been set. Please set it first.", 'red'))
                 continue
-            run_all_instances(ports, game_id, private_codes)
+            interval_minutes = int(input("Enter the time interval (in minutes, enter 0 for no interval): "))
+            run_all_instances_with_interval(ports, game_id, private_codes, interval_minutes)
         elif choice == '2':
             game_id = input("Enter Game ID: ")
             save_config(game_id)
         elif choice == '3':
-            new_ports = input("Enter the ADB port (separate with commas if more than one).: ").split(',')
+            new_ports = input("Enter the ADB port (separate with commas if more than one): ").split(',')
             save_ports([port.strip() for port in new_ports])
             ports = new_ports
             auto_connect_adb(ports)
         elif choice == '4':
-            code = input("Enter private code for all instances.(only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
+            code = input("Enter private code for all instances (only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
             for port in ports:
                 save_private_link(port, code)
                 private_codes = load_private_links()
         elif choice == '5':
             instance = input("Enter the instance port: ").strip()
-            code = input("Enter the private code for this instance.(only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
+            code = input("Enter the private code for this instance (only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
             save_private_link(instance, code)
             private_codes = load_private_links()
         elif choice == '6':
