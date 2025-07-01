@@ -5,184 +5,205 @@ import threading
 import json
 from tabulate import tabulate
 from termcolor import colored
-from colorama import init, Fore
+from colorama import init
 
-# Inisialisasi Colorama
+# Inisialisasi Colorama untuk pewarnaan teks
 init(autoreset=True)
 
-# Path ADB
+# Dapatkan jalur ADB saat dijalankan sebagai EXE
 if getattr(sys, 'frozen', False):
-    base_path = sys._MEIPASS
+    base_path = sys._MEIPASS  # Jalur sementara untuk file EXE
 else:
     base_path = os.path.dirname(os.path.abspath(__file__))
 
 ADB_PATH = os.path.join(base_path, 'adb', 'adb.exe')
 
-# File konfigurasi
+# Nama file untuk menyimpan Game ID, Port ADB, dan Private Code
 config_file = "roblox_config.txt"
 port_file = "adb_ports.txt"
 PRIVATE_LINK_FILE = "private_links.json"
 
+# Fungsi untuk menyimpan dan memuat konfigurasi
 def load_config():
     if os.path.exists(config_file):
         with open(config_file, 'r') as file:
-            return file.read().strip()
+            lines = file.readlines()
+            if len(lines) >= 1:
+                game_id = lines[0].strip()
+                return game_id
     return None
 
+# Fungsi untuk menyimpan Game ID ke file
 def save_config(game_id):
     with open(config_file, 'w') as file:
-        file.write(game_id)
-    print(colored("Game ID saved successfully", 'green'))
+        file.write(f"{game_id}\n")
+    print(colored(f"Game ID telah disimpan di {config_file}", 'green'))
 
+# Fungsi untuk memuat Port ADB dari file
 def load_ports():
     if os.path.exists(port_file):
         with open(port_file, 'r') as file:
-            return [port.strip() for port in file.readlines() if port.strip()]
+            ports = file.readlines()
+            return [port.strip() for port in ports]
     return []
 
+# Fungsi untuk menyimpan Port ADB ke file
 def save_ports(ports):
     with open(port_file, 'w') as file:
-        file.write('\n'.join(ports))
-    print(colored("ADB ports saved successfully", 'green'))
+        for port in ports:
+            file.write(f"{port}\n")
+    print(colored(f"Port ADB telah disimpan di {port_file}", 'green'))
 
+# Fungsi untuk memuat private links dari file
 def load_private_links():
     try:
         if os.path.exists(PRIVATE_LINK_FILE):
-            with open(PRIVATE_LINK_FILE, 'r') as file:
+            with open(PRIVATE_LINK_FILE, "r") as file:
                 return json.load(file)
-        return {}
+        else:
+            return {}
     except Exception as e:
-        print(colored(f"Error loading private links: {e}", 'red'))
+        print(colored(f"Error memuat private link: {e}", "red"))
         return {}
 
+# Fungsi untuk menyimpan private link ke file
 def save_private_link(device_id, link):
     try:
         links = load_private_links()
         links[device_id] = link
-        with open(PRIVATE_LINK_FILE, 'w') as file:
+        with open(PRIVATE_LINK_FILE, "w") as file:
             json.dump(links, file, indent=4)
-        print(colored(f"Private link saved for emulator {device_id}", 'green'))
+        print(colored(f"Private link for emulator {device_id} successfully saved: {link}", "green"))
     except Exception as e:
-        print(colored(f"Error saving private link: {e}", 'red'))
+        print(colored(f"Error saving private link: {e}", "red"))
 
+# Fungsi untuk menyambungkan ke ADB
 def auto_connect_adb(ports):
     for port in ports:
-        subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'], 
-                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-def launch_game_directly(device_id, game_url):
-    try:
-        # Menggunakan ActivityProtocolLaunch untuk membuka game langsung
-        result = subprocess.run([
-            ADB_PATH, '-s', f'127.0.0.1:{device_id}',
-            'shell', 'am', 'start',
-            '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch',
-            '-d', game_url
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
+        result = subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
         if result.returncode != 0:
-            print(colored(f"Failed to launch game on {device_id}: {result.stderr}", 'red'))
-            return False
-        
-        time.sleep(5)  # Waktu tunggu untuk game terbuka
-        return True
+            print(f"Failed to connect to port {port}: {result.stderr}")
+
+# Fungsi untuk menjalankan Private Server
+def start_private_server(device_id, private_link):
+    try:
+        subprocess.run(
+        subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', private_link],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
+        subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', private_link],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(8)                               
+        print(colored(f"Private link dijalankan di emulator {device_id}.", "green"))
     except Exception as e:
-        print(colored(f"Error launching game on {device_id}: {e}", 'red'))
-        return False
+        print(colored(f"Gagal menjalankan Private Server di emulator {device_id}: {e}", "red"))
 
+# Fungsi untuk menjalankan Default Server
+def start_default_server(device_id, game_id):
+    try:
+        game_url = f"roblox://placeID={game_id}"
+        subprocess.run(
+        subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', game_url],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
+        subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', game_url],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(10)
+        print(colored(f"Membuka game menggunakan server: {game_url}.", 'green'))       
+    except Exception as e:
+        print(colored(f"Failed to start Default Server: {e}", 'red'))
+
+# Fungsi untuk auto join game
 def auto_join_game(device_id, game_id, private_link, status):
-    status[device_id] = "Launching Game"
-    update_table(status)
-    
-    # Gunakan private link jika ada, jika tidak gunakan game ID default
-    game_url = private_link if private_link else f"roblox://placeID={game_id}"
-    
-    if launch_game_directly(device_id, game_url):
-        status[device_id] = "In Game"
-    else:
-        status[device_id] = "Failed to Launch"
-    
+    status[device_id] = "Opening Roblox"
     update_table(status)
 
+    if private_link:
+        start_private_server(device_id, private_link)
+    else:
+        start_default_server(device_id, game_id)
+
+    status[device_id] = "In Game"
+    update_table(status)
+
+# Fungsi untuk memastikan Roblox berjalan dengan interval
+def ensure_roblox_running_with_interval(device_id, game_id, private_link, status, interval_minutes):
+    interval_seconds = interval_minutes * 60
+    start_time = time.time()
+
+    while True:
+        elapsed_time = time.time() - start_time
+        if not check_roblox_running(device_id):
+            status[device_id] = "roblox offline"
+            update_table(status)
+            force_close_roblox(device_id)
+            auto_join_game(device_id, game_id, private_link, status)
+        
+        if interval_minutes > 0 and elapsed_time >= interval_seconds:
+            status[device_id] = "Restarting due to interval"
+            update_table(status)
+            force_close_roblox(device_id)
+            auto_join_game(device_id, game_id, private_link, status)
+            start_time = time.time()  # Reset timer setelah restart
+
+        time.sleep(5)
+
+# Fungsi untuk memeriksa apakah Roblox sedang berjalan
 def check_roblox_running(device_id):
     try:
         result = subprocess.run(
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
+        )  
         return bool(result.stdout.strip())
-    except Exception:
+    except Exception as e:
+        print(colored(f"Error checking if Roblox is running on {device_id}: {e}", 'red'))
         return False
 
+# Fungsi untuk force close jika game tidak terhubung
 def force_close_roblox(device_id):
-    subprocess.run(
-        [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
-    time.sleep(3)
+    subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)               
+    time.sleep(8)
 
-def ensure_roblox_running_with_interval(device_id, game_id, private_link, status, interval_minutes):
-    interval_seconds = interval_minutes * 60 if interval_minutes > 0 else None
-    last_restart = time.time()
-
-    while True:
-        current_time = time.time()
-        
-        # Restart jika game crash atau interval tercapai
-        if not check_roblox_running(device_id) or (interval_seconds and (current_time - last_restart) >= interval_seconds):
-            status[device_id] = "Restarting..." if interval_seconds else "Recovering..."
-            update_table(status)
-            
-            force_close_roblox(device_id)
-            auto_join_game(device_id, game_id, private_link, status)
-            
-            last_restart = current_time
-        
-        time.sleep(5)
-
+# Fungsi untuk memperbarui tabel
 def update_table(status):
     os.system('cls' if os.name == 'nt' else 'clear')
     rows = []
     for device_id, game_status in status.items():
-        color = {
-            "In Game": "green",
-            "Launching Game": "yellow",
-            "Restarting...": "magenta",
-            "Recovering...": "blue",
-            "Failed to Launch": "red"
-        }.get(game_status, "white")
-        
-        rows.append({
-            "Emulator": f"127.0.0.1:{device_id}",
-            "Status": colored(game_status, color)
-        })
+        if game_status == "In Game":
+            color = 'green'
+        elif game_status == "Opening the Game":
+            color = 'cyan'
+        elif game_status == "Opening Roblox":
+            color = 'yellow'              
+        elif game_status == "roblox offline":
+            color = 'red'
+        elif game_status == "Restarting due to interval":
+            color = 'magenta'
+        else:
+            color = 'white'
+        rows.append({"NAME": f"emulator:{device_id}", "Proses": colored(game_status, color)})
     
     print(tabulate(rows, headers="keys", tablefmt="grid"))
-    print(colored("ROBLOX AUTO JOINER", 'cyan', attrs=['bold']).center(50))
-    print(colored("All instances running simultaneously", 'yellow'))
+    print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
 
-def run_all_instances(ports, game_id, private_codes, interval_minutes):
-    status = {port: "Initializing" for port in ports}
+# Fungsi untuk menjalankan semua instance secara parallel dengan interval
+def run_all_instances_with_interval(ports, game_id, private_codes, interval_minutes):
+    status = {port: "waiting" for port in ports}
     update_table(status)
 
     threads = []
     for port in ports:
-        thread = threading.Thread(
-            target=ensure_roblox_running_with_interval,
-            args=(port, game_id, private_codes.get(port), status, interval_minutes)
-        )
-        thread.daemon = True
+        private_link = private_codes.get(port)
+        thread = threading.Thread(target=ensure_roblox_running_with_interval, args=(port, game_id, private_link, status, interval_minutes))
         thread.start()
         threads.append(thread)
 
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print(colored("\nStopping all instances...", 'red'))
-        for port in ports:
-            force_close_roblox(port)
+    for thread in threads:
+        thread.join()
 
+# Menu utama
 def menu():
     game_id = load_config()
     ports = load_ports()
@@ -191,68 +212,53 @@ def menu():
     if ports:
         auto_connect_adb(ports)
     else:
-        print(colored("No ADB ports configured!", 'yellow'))
+        print(colored("ADB port not found. Please set it first..", 'yellow'))
+
+    if game_id:
+        print(colored(f"Game ID: {game_id} has been loaded from configuration.", 'green'))
+    else:
+        print(colored("Game ID not set yet. Please set it first.", 'yellow'))
 
     while True:
-        print("\n=== MAIN MENU ===")
-        print("1. Start Auto Join")
-        print("2. Configure Game ID")
-        print("3. Configure ADB Ports")
-        print("4. Set Private Server (All)")
-        print("5. Set Private Server (Single)")
+        print("\nMenu:")
+        print("1. Auto join")
+        print("2. Set Game ID")
+        print("3. Set Port ADB")
+        print("4. Set private code for all instances")
+        print("5. Set private code for 1 instance")
         print("6. Exit")
 
-        choice = input("Select option (1-6): ").strip()
+        choice = input("Select number (1/2/3/4/5/6): ")
 
         if choice == '1':
             if not game_id:
-                print(colored("Game ID not set!", 'red'))
+                print(colored("Game ID has not been set. Please set it first.", 'red'))
                 continue
-            if not ports:
-                print(colored("No ADB ports configured!", 'red'))
-                continue
-                
-            interval = int(input("Restart interval in minutes (0 to disable): "))
-            run_all_instances(ports, game_id, private_codes, interval)
-            
+            interval_minutes = int(input("Enter the time interval (in minutes, enter 0 for no interval): "))
+            run_all_instances_with_interval(ports, game_id, private_codes, interval_minutes)
         elif choice == '2':
-            game_id = input("Enter Game ID: ").strip()
+            game_id = input("Enter Game ID: ")
             save_config(game_id)
-            
         elif choice == '3':
-            ports = input("Enter ADB ports (comma separated): ").strip().split(',')
-            ports = [port.strip() for port in ports if port.strip()]
-            save_ports(ports)
+            new_ports = input("Enter the ADB port (separate with commas if more than one): ").split(',')
+            save_ports([port.strip() for port in new_ports])
+            ports = new_ports
             auto_connect_adb(ports)
-            
         elif choice == '4':
-            if not ports:
-                print(colored("No ADB ports configured!", 'red'))
-                continue
-            code = input("Enter private server link for ALL instances: ").strip()
+            code = input("Enter private code for all instances (only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
             for port in ports:
                 save_private_link(port, code)
-            private_codes = load_private_links()
-            
-        elif choice == '5':
-            if not ports:
-                print(colored("No ADB ports configured!", 'red'))
-                continue
-            print("Available ports:", ", ".join(ports))
-            port = input("Enter port number: ").strip()
-            if port in ports:
-                code = input("Enter private server link: ").strip()
-                save_private_link(port, code)
                 private_codes = load_private_links()
-            else:
-                print(colored("Invalid port number!", 'red'))
-                
+        elif choice == '5':
+            instance = input("Enter the instance port: ").strip()
+            code = input("Enter the private code for this instance (only support link like this https://www.roblox.com/games/2753915549/DRAGON-Blox-Fruits?privateServerLinkCode=313232213213123123131): ").strip()
+            save_private_link(instance, code)
+            private_codes = load_private_links()
         elif choice == '6':
-            print("Exiting...")
+            print("Exit the program...")
             break
-            
         else:
-            print(colored("Invalid option!", 'red'))
+            print("Invalid selection!")
 
-if __name__ == "__main__":
-    menu()
+# Eksekusi utama
+menu()
