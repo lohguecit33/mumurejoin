@@ -91,7 +91,6 @@ def start_private_server(device_id, private_link):
             [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.startup.ActivitySplash', '-d', private_link],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(10)
-        # Membuka game di Roblox setelah ActivitySplash
         subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', private_link],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(8)                               
@@ -110,6 +109,7 @@ def start_default_server(device_id, game_id):
             '-d', game_url,
             '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch'
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        time.sleep(10)
         print(colored(f"Membuka game menggunakan server: {game_url}.", 'green'))       
     except Exception as e:
         print(colored(f"Failed to start Default Server: {e}", 'red'))
@@ -124,43 +124,17 @@ def auto_join_game(device_id, game_id, private_link, status):
     else:
         start_default_server(device_id, game_id)
 
-    status[device_id] = "Opening the Game"
-    update_table(status)
-    time.sleep(10)
-
     status[device_id] = "In Game"
     update_table(status)
-    time.sleep(1)    
 
 # Fungsi untuk memastikan Roblox berjalan
-def ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes):
-    status = {port: "waiting" for port in ports}
-    update_table(status)
-
-    interval_seconds = interval_minutes * 60
-    start_time = time.time()
-
+def ensure_roblox_running(device_id, game_id, private_link, status):
     while True:
-        elapsed_time = time.time() - start_time
-        for port in ports:
-            private_link = private_codes.get(port)
-            if check_roblox_running(port):
-                status[port] = "In Game"
-                update_table(status)                 
-            else:
-                status[port] = "roblox offline" 
-                update_table(status)          
-                force_close_roblox(port)
-                auto_join_game(port, game_id, private_link, status)
-
-        if interval_minutes > 0 and elapsed_time >= interval_seconds:
-            for port in ports:
-                private_link = private_codes.get(port)
-                status[port] = "roblox offline" 
-                update_table(status)
-                force_close_roblox(port)
-                auto_join_game(port, game_id, private_link, status)
-            start_time = time.time()
+        if not check_roblox_running(device_id):
+            status[device_id] = "roblox offline"
+            update_table(status)
+            force_close_roblox(device_id)
+            auto_join_game(device_id, game_id, private_link, status)
         time.sleep(5)
 
 # Fungsi untuk memeriksa apakah Roblox sedang berjalan
@@ -201,6 +175,21 @@ def update_table(status):
     print(tabulate(rows, headers="keys", tablefmt="grid"))
     print(colored("BANG OVA", 'blue', attrs=['bold', 'underline']).center(50))
 
+# Fungsi untuk menjalankan semua instance secara parallel
+def run_all_instances(ports, game_id, private_codes):
+    status = {port: "waiting" for port in ports}
+    update_table(status)
+
+    threads = []
+    for port in ports:
+        private_link = private_codes.get(port)
+        thread = threading.Thread(target=ensure_roblox_running, args=(port, game_id, private_link, status))
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
 # Menu utama
 def menu():
     game_id = load_config()
@@ -232,8 +221,7 @@ def menu():
             if not game_id:
                 print(colored("Game ID has not been set. Please set it first.", 'red'))
                 continue
-            interval_minutes = int(input("Enter the time interval (in minutes, enter 0 for no interval).: "))
-            ensure_roblox_running_with_interval(ports, game_id, private_codes, interval_minutes)
+            run_all_instances(ports, game_id, private_codes)
         elif choice == '2':
             game_id = input("Enter Game ID: ")
             save_config(game_id)
