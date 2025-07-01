@@ -102,10 +102,13 @@ def start_private_server(device_id, private_link):
 def start_default_server(device_id, game_id):
     try:
         game_url = f"roblox://placeID={game_id}"
-        subprocess.run(
-            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.startup.ActivitySplash', '-d', game_url],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(10)
+        result = subprocess.run([
+            ADB_PATH, '-s', f'127.0.0.1:{port}',
+            'shell', 'am', 'start',
+            '-a', 'android.intent.action.VIEW',
+            '-d', game_url,
+            '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch'
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         subprocess.run([ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'start', '-n', 'com.roblox.client/com.roblox.client.ActivityProtocolLaunch', '-d', game_url],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(10)
