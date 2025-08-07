@@ -10,6 +10,14 @@ from colorama import init
 # Inisialisasi Colorama untuk pewarnaan teks
 init(autoreset=True)
 
+# Dapatkan jalur ADB saat dijalankan sebagai EXE
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS  # Jalur sementara untuk file EXE
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+ADB_PATH = os.path.join(base_path, 'adb', 'adb.exe')
+
 CONFIG_FILE = "config.json"
 PRIVATE_LINK_FILE = "private_links.json"
 
